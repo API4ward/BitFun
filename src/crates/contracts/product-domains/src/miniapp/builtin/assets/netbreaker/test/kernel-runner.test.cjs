@@ -1,13 +1,10 @@
-import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-import test from 'node:test';
+'use strict';
 
-const require = createRequire(import.meta.url);
-const runnerPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'kernel-runner.js');
+const assert = require('node:assert/strict');
+const { mkdtempSync, writeFileSync, mkdirSync, readFileSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
+const test = require('node:test');
 const {
   DEFAULT_LISTEN_PORT,
   MAX_LOGS,
@@ -15,7 +12,7 @@ const {
   createRunner,
   buildConfig,
   looksLikeKernelBinary,
-} = require(runnerPath);
+} = require('../scripts/kernel-runner');
 
 function scratch() {
   return mkdtempSync(join(tmpdir(), 'netbreaker-kernel-'));
@@ -56,7 +53,7 @@ test('locateKernel prefers scripts/v2ray and ignores js wrappers', () => {
   const found = createRunner(dir).locateKernel();
   assert.equal(found.ok, true);
   assert.equal(found.source, 'app');
-  assert.ok(found.path.endsWith(`${join('scripts', 'v2ray')}`) || found.path.endsWith('/scripts/v2ray'));
+  assert.ok(found.path.endsWith(join('scripts', 'v2ray')));
 });
 
 test('writeConfig and log ring stay at last 10 entries', () => {
