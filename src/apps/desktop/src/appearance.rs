@@ -977,6 +977,51 @@ pub async fn show_agent_companion_desktop_pet(app: tauri::AppHandle) -> Result<(
     Ok(())
 }
 
+/// Open (or focus) an independent OS window hosting a MiniApp in `full` view
+/// mode. The window loads the shared Web UI with the `miniapp` window role so it
+/// renders the same runner/bridge as the in-tab host.
+#[tauri::command]
+pub async fn open_miniapp_full_window(
+    app: tauri::AppHandle,
+    app_id: String,
+    title: Option<String>,
+) -> Result<(), String> {
+    // MiniApp ids are UUIDs or `builtin-*`; both are valid Tauri window labels.
+    if app_id.is_empty()
+        || !app_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(format!("Invalid MiniApp id for window label: {app_id}"));
+    }
+    let label = format!("miniapp-{app_id}");
+
+    if let Some(window) = app.get_webview_window(&label) {
+        let _ = window.unminimize();
+        window
+            .show()
+            .map_err(|e| format!("Failed to show MiniApp window: {e}"))?;
+        window
+            .set_focus()
+            .map_err(|e| format!("Failed to focus MiniApp window: {e}"))?;
+        return Ok(());
+    }
+
+    let url = app_url(&format!("?bitfunWindow=miniapp&miniAppId={app_id}"));
+    let window_title = title.unwrap_or_else(|| "BitFun Mini App".to_string());
+    let builder = tauri::WebviewWindowBuilder::new(&app, &label, url)
+        .title(window_title)
+        .inner_size(1024.0, 720.0)
+        .min_inner_size(480.0, 360.0)
+        .resizable(true)
+        .visible(true);
+
+    builder
+        .build()
+        .map_err(|e| format!("Failed to create MiniApp window: {e}"))?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn resize_agent_companion_desktop_pet(
     app: tauri::AppHandle,
