@@ -14,9 +14,11 @@ use crate::product_domain_runtime::CoreProductDomainRuntime;
 use crate::util::errors::{BitFunError, BitFunResult};
 use bitfun_product_domains::miniapp::runtime::detect_runtime;
 use bitfun_product_domains::miniapp::storage::resolve_contained_relative;
-use bitfun_product_domains::miniapp::types::{MiniAppLifecycleEvent, MiniAppViewMode};
+use bitfun_product_domains::miniapp::types::{
+    find_script_path, MiniAppLifecycleEvent, MiniAppScriptDef, MiniAppViewMode,
+};
 use bitfun_services_integrations::miniapp::lifecycle_runner::{
-    run_lifecycle_script, DEFAULT_LIFECYCLE_TIMEOUT_MS,
+    run_lifecycle_script, run_miniapp_script, DEFAULT_LIFECYCLE_TIMEOUT_MS,
 };
 use bitfun_product_domains::miniapp::customization::{
     MiniAppCustomizationBaseline, MiniAppCustomizationMetadata, MiniAppPermissionDiff,
@@ -86,6 +88,44 @@ impl MiniAppLifecycleReport {
             "id": app_id,
             "event": self.event.as_str(),
             "script": self.relative_path,
+            "succeeded": self.succeeded,
+            "exitCode": self.exit_code,
+            "error": self.error,
+        })
+    }
+}
+
+/// Result of running a named MiniApp script (`scripts` in the manifest).
+#[derive(Debug, Clone)]
+pub struct MiniAppScriptRunReport {
+    pub name: String,
+    pub relative_path: String,
+    pub succeeded: bool,
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub error: Option<String>,
+}
+
+impl MiniAppScriptRunReport {
+    fn failed(name: String, relative_path: String, error: String) -> Self {
+        Self {
+            name,
+            relative_path,
+            succeeded: false,
+            exit_code: None,
+            stdout: String::new(),
+            stderr: String::new(),
+            error: Some(error),
+        }
+    }
+
+    /// JSON payload for the `miniapp-script` frontend/telemetry event.
+    pub fn to_event_payload(&self, app_id: &str) -> serde_json::Value {
+        serde_json::json!({
+            "id": app_id,
+            "script": self.name,
+            "path": self.relative_path,
             "succeeded": self.succeeded,
             "exitCode": self.exit_code,
             "error": self.error,
@@ -357,6 +397,107 @@ impl MiniAppManager {
             .persist_update_result_for_app(app_id.to_string(), previous_app, patch, compiled_html, now)
             .await
             .map_err(map_miniapp_port_error)
+    }
+
+    /// Replace the app's named scripts (`scripts` in the manifest). Like the
+    /// other metadata setters this preserves the compiled document.
+    pub async fn set_scripts(
+        &self,
+        app_id: &str,
+        scripts: Vec<MiniAppScriptDef>,
+    ) -> BitFunResult<MiniApp> {
+        let previous_app = self.storage.load(app_id).await?;
+        let now = Utc::now().timestamp_millis();
+        let compiled_html = previous_app.compiled_html.clone();
+        let patch = MiniAppUpdatePatch {
+            scripts: Some(scripts),
+            ..Default::default()
+        };
+        self.runtime_facade()
+            .persist_update_result_for_app(app_id.to_string(), previous_app, patch, compiled_html, now)
+            .await
+            .map_err(map_miniapp_port_error)
+    }
+
+    /// Run a named script declared by the app, forwarding `args` to the process.
+    ///
+    /// Returns `Ok(None)` when the app declares no script with `name`. Named
+    /// scripts are trusted, author-provided host code (like lifecycle hooks):
+    /// they run in the app directory with the resolved permission policy exposed
+    /// via environment variables, not inside the iframe sandbox.
+    pub async fn run_named_script(
+        &self,
+        app_id: &str,
+        name: &str,
+        args: Vec<String>,
+    ) -> BitFunResult<Option<MiniAppScriptRunReport>> {
+        let meta = self.storage.load_meta(app_id).await?;
+        let Some(relative) = find_script_path(&meta.scripts, name) else {
+            return Ok(None);
+        };
+        let relative = relative.to_string();
+        let script_name = name.trim().to_string();
+        let app_dir = self.path_manager.miniapp_dir(app_id);
+
+        let Some(script_path) = resolve_contained_relative(&app_dir, &relative) else {
+            return Ok(Some(MiniAppScriptRunReport::failed(
+                script_name,
+                relative,
+                "Script path escapes the app directory".to_string(),
+            )));
+        };
+        if tokio::fs::metadata(&script_path).await.is_err() {
+            return Ok(Some(MiniAppScriptRunReport::failed(
+                script_name,
+                relative,
+                format!("Script not found: {}", script_path.to_string_lossy()),
+            )));
+        }
+        let Some(runtime) = detect_runtime() else {
+            return Ok(Some(MiniAppScriptRunReport::failed(
+                script_name,
+                relative,
+                "No JS runtime (Bun/Node) detected for script".to_string(),
+            )));
+        };
+
+        let policy = self
+            .resolve_policy_for_app(app_id, &meta.permissions, None)
+            .await;
+        let extra_env = vec![
+            ("BITFUN_MINIAPP_ID".to_string(), app_id.to_string()),
+            (
+                "BITFUN_MINIAPP_DIR".to_string(),
+                app_dir.to_string_lossy().to_string(),
+            ),
+            ("BITFUN_MINIAPP_SCRIPT".to_string(), script_name.clone()),
+            ("BITFUN_MINIAPP_POLICY".to_string(), policy.to_string()),
+        ];
+        let timeout_ms = meta
+            .permissions
+            .node
+            .as_ref()
+            .and_then(|node| node.timeout_ms)
+            .unwrap_or(DEFAULT_LIFECYCLE_TIMEOUT_MS);
+
+        match run_miniapp_script(&runtime, &script_path, &app_dir, &args, &extra_env, timeout_ms)
+            .await
+        {
+            Ok(outcome) => Ok(Some(MiniAppScriptRunReport {
+                name: script_name,
+                relative_path: relative,
+                succeeded: outcome.succeeded,
+                exit_code: outcome.exit_code,
+                stdout: outcome.stdout,
+                stderr: outcome.stderr,
+                error: None,
+            })),
+            Err(error) => Ok(Some(MiniAppScriptRunReport::failed(
+                script_name,
+                relative,
+                error,
+            ))),
+        }
     }
 
     /// Dispatch a lifecycle event for an app, running its declared script (if
@@ -1175,6 +1316,57 @@ mod tests {
             .expect("declared script yields a report");
         assert!(!escape.succeeded);
         assert!(escape.error.is_some());
+    }
+
+    #[tokio::test]
+    async fn run_named_script_runs_declared_script_with_args() {
+        use bitfun_product_domains::miniapp::types::MiniAppScriptDef;
+
+        let manager = test_manager();
+        let app = create_sample_app(&manager).await;
+
+        let app_dir = manager.path_manager().miniapp_dir(&app.id);
+        let scripts_dir = app_dir.join("scripts");
+        tokio::fs::create_dir_all(&scripts_dir).await.unwrap();
+        tokio::fs::write(
+            scripts_dir.join("echo.js"),
+            "console.log('script:' + process.env.BITFUN_MINIAPP_SCRIPT + ':' + (process.argv[2] || ''));\n",
+        )
+        .await
+        .unwrap();
+
+        // Unknown script -> None.
+        assert!(manager
+            .run_named_script(&app.id, "missing", vec![])
+            .await
+            .unwrap()
+            .is_none());
+
+        manager
+            .set_scripts(
+                &app.id,
+                vec![MiniAppScriptDef {
+                    name: "echo".to_string(),
+                    path: "scripts/echo.js".to_string(),
+                    description: Some("Echo a value".to_string()),
+                }],
+            )
+            .await
+            .unwrap();
+
+        let report = manager
+            .run_named_script(&app.id, "echo", vec!["hello".to_string()])
+            .await
+            .unwrap()
+            .expect("declared script yields a report");
+        assert_eq!(report.name, "echo");
+        assert_eq!(report.relative_path, "scripts/echo.js");
+        if report.error.is_none() {
+            assert!(report.succeeded, "stderr: {}", report.stderr);
+            assert!(report.stdout.contains("script:echo:hello"));
+        } else {
+            assert!(!report.succeeded);
+        }
     }
 
     #[test]
