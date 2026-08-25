@@ -21,7 +21,14 @@
   "detail": {
     "stop": "Stop",
     "delete": "Delete",
-    "open": "Open"
+    "open": "Open",
+    "viewMode": {
+      "label": "View mode",
+      "background": "Background",
+      "front": "Tab",
+      "full": "Window",
+      "hint": "Background keeps the app in a panel, Tab opens it in the workspace, Window opens a separate window."
+    }
   },
   "confirmDelete": {
     "title": "Delete \"{{name}}\"?",

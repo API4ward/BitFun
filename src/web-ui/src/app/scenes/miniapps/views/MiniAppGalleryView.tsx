@@ -13,7 +13,7 @@ import {
 import { open } from '@tauri-apps/plugin-dialog';
 import { useSceneManager } from '@/app/hooks/useSceneManager';
 import MiniAppCard from '../components/MiniAppCard';
-import type { MiniAppMeta } from '@/infrastructure/api/service-api/MiniAppAPI';
+import type { MiniAppMeta, MiniAppViewMode } from '@/infrastructure/api/service-api/MiniAppAPI';
 import { miniAppAPI } from '@/infrastructure/api/service-api/MiniAppAPI';
 import {
   miniAppMarketAPI,
@@ -54,6 +54,7 @@ const MiniAppGalleryView: React.FC = () => {
   const setMarketOrigins = useMiniAppStore((state) => state.setMarketOrigins);
   const setRunningWorkerIds = useMiniAppStore((state) => state.setRunningWorkerIds);
   const markWorkerStopped = useMiniAppStore((state) => state.markWorkerStopped);
+  const upsertApp = useMiniAppStore((state) => state.upsertApp);
   const { workspacePath } = useCurrentWorkspace();
   const notification = useNotification();
   const { openScene, activateScene, closeScene, openTabs } = useSceneManager();
@@ -152,6 +153,19 @@ const MiniAppGalleryView: React.FC = () => {
       }
     },
     [markWorkerStopped, closeScene, openTabIds]
+  );
+
+  const handleSetViewMode = useCallback(
+    async (appId: string, mode: MiniAppViewMode) => {
+      try {
+        const updated = await miniAppAPI.setViewMode(appId, mode);
+        upsertApp(updated);
+        setSelectedApp((current) => (current && current.id === appId ? updated : current));
+      } catch (error) {
+        log.error('Set view mode failed', error);
+      }
+    },
+    [upsertApp]
   );
 
   const handleDeleteRequest = (appId: string) => {
@@ -451,16 +465,63 @@ const MiniAppGalleryView: React.FC = () => {
       >
         {selectedApp ? (() => {
           const detailTags = pickLocalizedTags(selectedApp, currentLanguage);
-          return detailTags.length ? (
-            <div data-bf-component="miniapp-gallery-view" data-bf-part="detailTags" className="miniapp-gallery__detail-tags">
-              {detailTags.map((tag) => (
-                <span key={tag} className="miniapp-gallery__detail-tag">
-                  <Tag size={11} />
-                  {tag}
+          const activeMode: MiniAppViewMode = selectedApp.view_mode ?? 'front';
+          const modeVariant = (mode: MiniAppViewMode) =>
+            activeMode === mode ? 'primary' : 'secondary';
+          return (
+            <>
+              <div
+                data-bf-component="miniapp-gallery-view"
+                data-bf-part="detailViewMode"
+                className="miniapp-gallery__detail-view-mode"
+              >
+                <span className="miniapp-gallery__detail-view-mode-label">
+                  {t('detail.viewMode.label')}
                 </span>
-              ))}
-            </div>
-          ) : null;
+                <div
+                  className="miniapp-gallery__detail-view-mode-options"
+                  role="group"
+                  aria-label={t('detail.viewMode.label')}
+                  style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
+                >
+                  <Button
+                    variant={modeVariant('background')}
+                    size="small"
+                    onClick={() => void handleSetViewMode(selectedApp.id, 'background')}
+                  >
+                    {t('detail.viewMode.background')}
+                  </Button>
+                  <Button
+                    variant={modeVariant('front')}
+                    size="small"
+                    onClick={() => void handleSetViewMode(selectedApp.id, 'front')}
+                  >
+                    {t('detail.viewMode.front')}
+                  </Button>
+                  <Button
+                    variant={modeVariant('full')}
+                    size="small"
+                    onClick={() => void handleSetViewMode(selectedApp.id, 'full')}
+                  >
+                    {t('detail.viewMode.full')}
+                  </Button>
+                </div>
+                <p className="miniapp-gallery__detail-view-mode-hint">
+                  {t('detail.viewMode.hint')}
+                </p>
+              </div>
+              {detailTags.length ? (
+                <div data-bf-component="miniapp-gallery-view" data-bf-part="detailTags" className="miniapp-gallery__detail-tags">
+                  {detailTags.map((tag) => (
+                    <span key={tag} className="miniapp-gallery__detail-tag">
+                      <Tag size={11} />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          );
         })() : null}
       </GalleryDetailModal>
 
