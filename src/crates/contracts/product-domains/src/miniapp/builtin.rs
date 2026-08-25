@@ -102,6 +102,10 @@ pub struct BuiltinMiniAppBundle {
     pub ui_js: &'static str,
     pub worker_js: &'static str,
     pub esm_dependencies_json: &'static str,
+    /// Extra files written at the app root (hooks, named scripts, READMEs).
+    /// Paths are relative to the installed app directory. Empty for apps that
+    /// only ship the standard `source/` quartet.
+    pub extra_files: &'static [(&'static str, &'static str)],
 }
 
 /// Built-in MiniApps that ship with the product-domain package.
@@ -118,6 +122,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/gomoku/ui.js"),
         worker_js: include_str!("builtin/assets/gomoku/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-daily-divination",
@@ -128,6 +133,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/divination/ui.js"),
         worker_js: include_str!("builtin/assets/divination/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-regex-playground",
@@ -138,6 +144,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/regex-playground/ui.js"),
         worker_js: include_str!("builtin/assets/regex-playground/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-coding-selfie",
@@ -148,6 +155,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/coding-selfie/ui.js"),
         worker_js: include_str!("builtin/assets/coding-selfie/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-ppt-live",
@@ -158,7 +166,66 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/ppt-live/dist/ui.bundle.js"),
         worker_js: include_str!("builtin/assets/ppt-live/worker.js"),
         esm_dependencies_json: include_str!("builtin/assets/ppt-live/esm_dependencies.json"),
+        extra_files: &[],
     },
+    BuiltinMiniAppBundle {
+        id: "builtin-netbreaker",
+        version: 1,
+        meta_json: include_str!("builtin/assets/netbreaker/meta.json"),
+        html: include_str!("builtin/assets/netbreaker/index.html"),
+        css: include_str!("builtin/assets/netbreaker/style.css"),
+        ui_js: include_str!("builtin/assets/netbreaker/ui.js"),
+        worker_js: include_str!("builtin/assets/netbreaker/worker.js"),
+        esm_dependencies_json: "[]",
+        extra_files: NETBREAKER_EXTRA_FILES,
+    },
+];
+
+const NETBREAKER_EXTRA_FILES: &[(&str, &str)] = &[
+    (
+        "hooks/install.js",
+        include_str!("builtin/assets/netbreaker/hooks/install.js"),
+    ),
+    (
+        "hooks/uninstall.js",
+        include_str!("builtin/assets/netbreaker/hooks/uninstall.js"),
+    ),
+    (
+        "hooks/start.js",
+        include_str!("builtin/assets/netbreaker/hooks/start.js"),
+    ),
+    (
+        "hooks/stop.js",
+        include_str!("builtin/assets/netbreaker/hooks/stop.js"),
+    ),
+    (
+        "scripts/kernel-runner.js",
+        include_str!("builtin/assets/netbreaker/scripts/kernel-runner.js"),
+    ),
+    (
+        "scripts/start.js",
+        include_str!("builtin/assets/netbreaker/scripts/start.js"),
+    ),
+    (
+        "scripts/stop.js",
+        include_str!("builtin/assets/netbreaker/scripts/stop.js"),
+    ),
+    (
+        "scripts/ping.js",
+        include_str!("builtin/assets/netbreaker/scripts/ping.js"),
+    ),
+    (
+        "scripts/ensure-kernel.js",
+        include_str!("builtin/assets/netbreaker/scripts/ensure-kernel.js"),
+    ),
+    (
+        "scripts/v2ray.js",
+        include_str!("builtin/assets/netbreaker/scripts/v2ray.js"),
+    ),
+    (
+        "scripts/README.md",
+        include_str!("builtin/assets/netbreaker/scripts/README.md"),
+    ),
 ];
 
 pub fn builtin_content_hash(app: &BuiltinMiniAppBundle) -> String {
@@ -173,6 +240,11 @@ pub fn builtin_content_hash(app: &BuiltinMiniAppBundle) -> String {
         "esm_dependencies.json",
         app.esm_dependencies_json,
     );
+    // Extra files are hashed only when present so existing builtins keep their
+    // content hash (and skip a no-op reseed) after this additive field landed.
+    for (relative_path, content) in app.extra_files {
+        hash_builtin_asset(&mut hasher, relative_path, content);
+    }
     format!("sha256:{}", hex_encode(&hasher.finalize()))
 }
 
@@ -325,6 +397,10 @@ pub fn builtin_source_files(app: &BuiltinMiniAppBundle) -> [(&'static str, &'sta
     ]
 }
 
+pub fn builtin_extra_files(app: &BuiltinMiniAppBundle) -> &'static [(&'static str, &'static str)] {
+    app.extra_files
+}
+
 fn hash_builtin_asset(hasher: &mut Sha256, name: &str, content: &str) {
     hasher.update(name.as_bytes());
     hasher.update([0u8]);
@@ -368,6 +444,7 @@ mod tests {
                 "builtin-regex-playground",
                 "builtin-coding-selfie",
                 "builtin-ppt-live",
+                "builtin-netbreaker",
             ]
         );
 
@@ -633,5 +710,86 @@ mod tests {
         assert!(!app.html.contains("src=\"./ui.js\""));
         assert!(!app.html.contains("href=\"./style.css\""));
         assert!(app.css.contains("--bitfun-bg"));
+    }
+
+    #[test]
+    fn extra_files_change_content_hash_only_when_present() {
+        let base = BuiltinMiniAppBundle {
+            id: "builtin-demo",
+            version: 1,
+            meta_json: r#"{"id":"builtin-demo"}"#,
+            html: "<html></html>",
+            css: "body{}",
+            ui_js: "/* ui */",
+            worker_js: "/* worker */",
+            esm_dependencies_json: "[]",
+            extra_files: &[],
+        };
+        let with_script = BuiltinMiniAppBundle {
+            extra_files: &[("scripts/start.js", "console.log('start')")],
+            ..base
+        };
+        assert_eq!(
+            super::builtin_content_hash(&base),
+            super::builtin_content_hash(&BuiltinMiniAppBundle {
+                extra_files: &[],
+                ..base
+            })
+        );
+        assert_ne!(
+            super::builtin_content_hash(&base),
+            super::builtin_content_hash(&with_script)
+        );
+    }
+
+    #[test]
+    fn netbreaker_bundle_ships_named_scripts_and_kernel_runner() {
+        let app = BUILTIN_APPS
+            .iter()
+            .find(|app| app.id == "builtin-netbreaker")
+            .expect("NetBreaker should be registered");
+        let meta: serde_json::Value =
+            serde_json::from_str(app.meta_json).expect("NetBreaker metadata should be valid");
+
+        assert_eq!(meta["id"], "builtin-netbreaker");
+        assert_eq!(meta["name"], "NetBreaker");
+        assert_eq!(meta["version"].as_u64(), Some(u64::from(app.version)));
+        assert_eq!(meta["permissions"]["fs"]["read"][0], "{appdata}");
+        assert_eq!(meta["permissions"]["fs"]["write"][0], "{appdata}");
+        assert_eq!(meta["permissions"]["node"]["enabled"], true);
+        assert!(meta["permissions"]["shell"]["allow"]
+            .as_array()
+            .is_some_and(|allow| allow.iter().any(|item| item == "v2ray")));
+        assert!(meta["lifecycle"]["install"]
+            .as_str()
+            .is_some_and(|path| path == "hooks/install.js"));
+        assert!(meta["lifecycle"]["uninstall"]
+            .as_str()
+            .is_some_and(|path| path == "hooks/uninstall.js"));
+
+        let scripts = meta["scripts"]
+            .as_array()
+            .expect("NetBreaker should declare named scripts");
+        let names: Vec<&str> = scripts
+            .iter()
+            .filter_map(|script| script["name"].as_str())
+            .collect();
+        assert_eq!(names, ["start", "stop", "ping", "ensure-kernel", "v2ray"]);
+        assert!(scripts.iter().all(|script| script["path"]
+            .as_str()
+            .is_some_and(|path| path.starts_with("scripts/"))));
+
+        let extra_paths: Vec<&str> = app.extra_files.iter().map(|(path, _)| *path).collect();
+        assert!(extra_paths.contains(&"scripts/kernel-runner.js"));
+        assert!(extra_paths.contains(&"scripts/start.js"));
+        assert!(extra_paths.contains(&"scripts/stop.js"));
+        assert!(extra_paths.contains(&"scripts/v2ray.js"));
+        assert!(extra_paths.contains(&"hooks/install.js"));
+        assert!(app.worker_js.contains("kernel-runner"));
+        assert!(app.ui_js.contains("btn-start"));
+        assert!(app.html.contains("id=\"listen-port\""));
+        assert!(app.html.contains("id=\"logs\""));
+        assert!(!app.meta_json.contains("exploit"));
+        assert!(!app.worker_js.contains("C2"));
     }
 }

@@ -1626,6 +1626,7 @@ fn miniapp_builtin_contract_preserves_seed_marker_and_hash_policy() {
         ui_js: r#"console.log("ui");"#,
         worker_js: r#"console.log("worker");"#,
         esm_dependencies_json: "[]",
+        extra_files: &[],
     };
     let content_hash = builtin_content_hash(&app);
 
@@ -1695,6 +1696,7 @@ fn miniapp_builtin_contract_owns_seed_plan_and_marker_wire_shape() {
         ui_js: r#"console.log("ui");"#,
         worker_js: r#"console.log("worker");"#,
         esm_dependencies_json: "[]",
+        extra_files: &[],
     };
     let artifacts = bitfun_product_domains::miniapp::builtin::build_builtin_seed_artifacts(&app);
     let marker = build_builtin_install_marker(&app, &artifacts.content_hash);
@@ -1759,6 +1761,7 @@ fn miniapp_builtin_contract_owns_seed_meta_timestamp_policy() {
         ui_js: "",
         worker_js: "",
         esm_dependencies_json: "[]",
+        extra_files: &[],
     };
 
     let fresh_meta = build_builtin_seed_meta(&app, None, 1000).unwrap();

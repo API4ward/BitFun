@@ -319,6 +319,9 @@ The specification is delivered incrementally. Current state:
       `MiniAppManager::run_named_script` / `set_scripts`, desktop
       `miniapp_run_script` / `miniapp_set_scripts`, `MiniAppAPI` + gallery Run
       UI, `scripts/` carried on import — with contract + manager tests.
+- [x] Built-in NetBreaker (`builtin-netbreaker`) ships lifecycle hooks plus
+      named scripts under `scripts/` (kernel runner, start/stop/ping,
+      ensure-kernel). Built-in seed now writes `extra_files` at the app root.
 
 ### Design boundary: scripts and the market
 
