@@ -35,6 +35,11 @@
       <p data-i18n="elevateBody">Starting TUN shows a pkexec, macOS admin, or Windows UAC prompt. Elevation is never silent. Deny it and the TUN will not start.</p>
     </div>
 
+    <div class="banner" id="tun-banner" hidden>
+      <strong data-i18n="tunUnavailableTitle">TUN unavailable</strong>
+      <p id="tun-banner-text" data-i18n="tunUnavailableBody">This host cannot create a virtual NIC. On Linux, /dev/net/tun is missing or not usable.</p>
+    </div>
+
     <div class="banner banner--warn" id="remote-banner" hidden>
       <strong data-i18n="remoteTitle">Local TUN host required</strong>
       <p id="remote-banner-text" data-i18n="remoteBody">NetBreaker2 must create a TUN device on this BitFun host. Remote, peer, detached, or headless surfaces that cannot elevate should use a local host.</p>
@@ -72,7 +77,8 @@
           <button type="button" id="btn-start" class="btn btn--primary" data-i18n="start">Start TUN</button>
           <button type="button" id="btn-stop" class="btn" data-i18n="stop">Stop TUN</button>
           <button type="button" id="btn-ping" class="btn" data-i18n="ping">Ping test</button>
-          <button type="button" id="btn-fetch" class="btn btn--ghost" data-i18n="fetchKernel">Fetch kernel</button>
+          <button type="button" id="btn-elevate" class="btn" data-i18n="elevate">Elevate</button>
+          <button type="button" id="btn-fetch" class="btn btn--ghost" data-i18n="fetchKernel">Fetch Clash kernel</button>
         </div>
         <p class="hint" data-i18n="hint">Starts a Clash TUN virtual NIC with a DIRECT outbound. This is a local proxy client, not a remote attack tool.</p>
       </section>

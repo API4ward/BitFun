@@ -279,14 +279,17 @@ mod tests {
             .unwrap();
 
         assert!(dir.join("scripts").join("kernel-runner.js").exists());
-        assert!(dir.join("scripts").join("elevate-launch.sh").exists());
         assert!(dir.join("scripts").join("start.js").exists());
+        assert!(dir.join("scripts").join("elevate.js").exists());
+        assert!(dir.join("scripts").join("elevate-launch.sh").exists());
         assert!(dir.join("hooks").join("install.js").exists());
         let meta = tokio::fs::read_to_string(dir.join("meta.json"))
             .await
             .unwrap();
         assert!(meta.contains("builtin-netbreaker2"));
-        assert!(meta.contains("scripts/start.js"));
+        assert!(meta.contains("scripts/elevate.js"));
+        assert!(!dir.join("scripts").join("mihomo").exists());
+        assert!(!dir.join("scripts").join("clash").exists());
 
         let _ = tokio::fs::remove_dir_all(dir).await;
     }

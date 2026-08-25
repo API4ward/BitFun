@@ -162,11 +162,26 @@ function defaultTunInterfaceExists(name) {
   return false;
 }
 
+function remoteHostBlocked() {
+  const keys = [
+    'BITFUN_NETBREAKER2_UNSUPPORTED',
+    'BITFUN_PEER_DEVICE_MODE',
+    'BITFUN_REMOTE_WORKSPACE',
+    'BITFUN_DETACHED_DISPATCH',
+    'BITFUN_REMOTE_CONTROL',
+    'BITFUN_MINIAPP_REMOTE_HOST',
+  ];
+  return keys.some((key) => {
+    const value = String(process.env[key] || '').toLowerCase();
+    return value === '1' || value === 'true' || value === 'yes';
+  });
+}
+
 function defaultUnsupportedHost() {
-  if (process.env.BITFUN_NETBREAKER2_UNSUPPORTED === '1') {
+  if (remoteHostBlocked()) {
     return {
       unsupported: true,
-      reason: 'Remote, peer, or detached host cannot create a local TUN device. Use a local BitFun host.',
+      reason: 'NetBreaker2 is LocalOnly. Remote workspace, remote control, peer device, and detached dispatch cannot create a local TUN device. Use a local BitFun host.',
     };
   }
   if (defaultIsElevated()) return { unsupported: false, reason: '' };
@@ -538,6 +553,7 @@ function createRunner(appDir, options) {
       elevated: Boolean(state.elevated),
       elevating: Boolean(state.elevating),
       secret: typeof state.secret === 'string' ? state.secret : '',
+      uiState: typeof state.uiState === 'string' ? state.uiState : '',
     };
   }
 
@@ -553,6 +569,7 @@ function createRunner(appDir, options) {
       elevated: Boolean(state.elevated),
       elevating: Boolean(state.elevating),
       secret: state.secret || '',
+      uiState: state.uiState || '',
     });
   }
 
@@ -719,8 +736,14 @@ function createRunner(appDir, options) {
     }
     const tunName = state.tunName || defaultTunDevice() || (process.platform === 'darwin' ? 'utun' : '');
     const tunReady = running && Boolean(tunName) && probes.tunInterfaceExists(tunName);
+    let uiState = 'ok';
+    if (priv.host.unsupported) uiState = 'remoteUnsupported';
+    else if (!located.ok) uiState = 'kernelMissing';
+    else if (!priv.tunAvailable) uiState = 'tunUnavailable';
+    else if (state.uiState === 'elevationDenied' && !running) uiState = 'elevationDenied';
+    else if (priv.needsElevation && !running) uiState = 'elevationRequired';
     return {
-      ok: true,
+      ok: uiState === 'ok' || running,
       running,
       pid: running ? pid : null,
       port: state.port,
@@ -732,12 +755,16 @@ function createRunner(appDir, options) {
       kernelError: located.ok ? '' : located.error,
       tunName,
       tunReady,
+      tunEnabled: Boolean(running && tunReady),
       tunAvailable: priv.tunAvailable,
       elevated: running ? Boolean(state.elevated || priv.elevated) : priv.elevated,
       elevating: Boolean(state.elevating) && !running,
       needsElevation: priv.needsElevation,
       elevationHelper: priv.helper,
-      localProcessUnsupported: Boolean(priv.host.unsupported),
+      privilegeState: uiState,
+      uiState,
+      localProcessUnsupported: uiState === 'remoteUnsupported',
+      remoteUnsupported: uiState === 'remoteUnsupported',
       unsupportedReason: priv.host.reason || '',
     };
   }
@@ -746,20 +773,20 @@ function createRunner(appDir, options) {
     const priv = privilegeSnapshot();
     if (priv.host.unsupported) {
       appendLog('error', priv.host.reason);
-      return { ...status(), ok: false, error: priv.host.reason, localProcessUnsupported: true };
+      return { ...status(), ok: false, error: priv.host.reason, uiState: 'remoteUnsupported', privilegeState: 'remoteUnsupported', localProcessUnsupported: true };
     }
     if (!priv.tunAvailable) {
       const error = process.platform === 'linux'
         ? 'This host has no /dev/net/tun. A virtual NIC cannot be created. Do not treat a SOCKS listen as success.'
         : 'This host cannot create a TUN virtual NIC.';
       appendLog('error', error);
-      return { ...status(), ok: false, error, tunAvailable: false };
+      return { ...status(), ok: false, error, tunAvailable: false, uiState: 'tunUnavailable', privilegeState: 'tunUnavailable' };
     }
 
     const located = locateKernel();
     if (!located.ok) {
       appendLog('error', located.error);
-      return { ...status(), ok: false, error: located.error };
+      return { ...status(), ok: false, error: located.error, uiState: 'kernelMissing', privilegeState: 'kernelMissing' };
     }
 
     writeConfig(params);
@@ -774,24 +801,31 @@ function createRunner(appDir, options) {
     if (priv.needsElevation) {
       const elevate = Boolean(params && params.elevate);
       if (!elevate) {
-        const error = 'TUN requires elevated rights. Start again to show the OS administrator / polkit prompt. Elevation is never silent.';
+        const error = 'TUN requires elevated rights. Use Elevate or Start TUN to show the OS administrator / polkit prompt. Elevation is never silent and SOCKS-only is not a fallback.';
         appendLog('error', error);
-        return { ...status(), ok: false, error, needsElevation: true };
+        return { ...status(), ok: false, error, needsElevation: true, uiState: 'elevationRequired', privilegeState: 'elevationRequired' };
       }
       if (!priv.helper) {
-        const error = 'Elevation denied or unsupported: no pkexec/osascript/UAC helper on this host.';
+        const error = 'Elevation denied or unsupported: no pkexec/osascript/UAC helper on this host. NetBreaker2 will not silently use sudo.';
+        const persisted = loadState();
+        persisted.uiState = 'elevationDenied';
+        saveState(persisted);
         appendLog('error', error);
-        return { ...status(), ok: false, error, localProcessUnsupported: true };
+        return { ...status(), ok: false, error, uiState: 'elevationDenied', privilegeState: 'elevationDenied' };
       }
       const launched = spawnElevated(located.path, priv.helper);
       if (!launched.ok) {
+        const persisted = loadState();
+        persisted.uiState = 'elevationDenied';
+        saveState(persisted);
         appendLog('error', `Elevation failed: ${launched.error}`);
-        return { ...status(), ok: false, error: launched.error, localProcessUnsupported: true };
+        return { ...status(), ok: false, error: launched.error, uiState: 'elevationDenied', privilegeState: 'elevationDenied' };
       }
       const state = loadState();
       state.kernelPath = located.path;
       state.elevating = true;
       state.elevated = false;
+      state.uiState = 'elevationRequired';
       saveState(state);
       appendLog('info', `Waiting for ${launched.helper} administrator prompt. Deny it and TUN will not start.`);
       return status();
@@ -988,6 +1022,13 @@ function createRunner(appDir, options) {
     status,
     ping,
     ensureKernel,
+    elevate() {
+      return start({
+        port: loadState().port,
+        elevate: true,
+        stack: loadState().stack,
+      });
+    },
     appendLog,
     isRunning,
     buildConfig,

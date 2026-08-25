@@ -219,6 +219,10 @@ const NETBREAKER2_EXTRA_FILES: &[(&str, &str)] = &[
         include_str!("builtin/assets/netbreaker2/scripts/ensure-kernel.js"),
     ),
     (
+        "scripts/elevate.js",
+        include_str!("builtin/assets/netbreaker2/scripts/elevate.js"),
+    ),
+    (
         "scripts/clash.js",
         include_str!("builtin/assets/netbreaker2/scripts/clash.js"),
     ),
@@ -786,20 +790,26 @@ mod tests {
             .iter()
             .filter_map(|script| script["name"].as_str())
             .collect();
-        assert_eq!(names, ["start", "stop", "ping", "ensure-kernel", "clash"]);
+        assert_eq!(
+            names,
+            ["start", "stop", "ping", "ensure-kernel", "elevate", "clash"]
+        );
         assert!(scripts.iter().all(|script| script["path"]
             .as_str()
             .is_some_and(|path| path.starts_with("scripts/"))));
 
         let extra_paths: Vec<&str> = app.extra_files.iter().map(|(path, _)| *path).collect();
         assert!(extra_paths.contains(&"scripts/kernel-runner.js"));
+        assert!(extra_paths.contains(&"scripts/elevate.js"));
         assert!(extra_paths.contains(&"scripts/elevate-launch.sh"));
         assert!(extra_paths.contains(&"scripts/elevate-launch.cmd"));
         assert!(extra_paths.contains(&"hooks/install.js"));
         assert!(app.worker_js.contains("kernel-runner"));
         assert!(app.ui_js.contains("btn-start"));
+        assert!(app.ui_js.contains("btn-elevate"));
         assert!(app.html.contains("id=\"fact-tun\""));
         assert!(app.html.contains("id=\"fact-elevated\""));
+        assert!(app.html.contains("id=\"btn-elevate\""));
         assert!(app.html.contains("id=\"logs\""));
         assert!(app
             .extra_files

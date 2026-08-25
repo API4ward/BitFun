@@ -46,6 +46,10 @@ module.exports = {
     return snapshotFrom(await runner().ensureKernel({ fetch }));
   },
 
+  async elevate() {
+    return snapshotFrom(runner().elevate());
+  },
+
   async logs() {
     const status = runner().status();
     return { logs: status.logs || [] };

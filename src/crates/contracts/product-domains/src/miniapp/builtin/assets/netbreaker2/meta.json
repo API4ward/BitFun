@@ -77,6 +77,11 @@
       "description": "Locate or download a user-local mihomo kernel into scripts/"
     },
     {
+      "name": "elevate",
+      "path": "scripts/elevate.js",
+      "description": "Request an explicit privilege prompt for TUN (pkexec / UAC)"
+    },
+    {
       "name": "clash",
       "path": "scripts/clash.js",
       "description": "Locate the bundled Clash/mihomo kernel, or pass through arguments to it"

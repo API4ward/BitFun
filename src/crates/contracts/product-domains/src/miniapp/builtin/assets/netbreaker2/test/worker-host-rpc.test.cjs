@@ -50,6 +50,10 @@ function seedWorkerApp() {
     join(__dirname, '..', 'scripts', 'elevate-launch.sh'),
     join(dir, 'scripts', 'elevate-launch.sh'),
   );
+  // Copy worker_host into this CJS package so the repo-root "type": "module"
+  // does not treat require() as a syntax error. Desktop CJS packaging is a
+  // separate host concern.
+  copyFileSync(findWorkerHost(), join(dir, 'worker_host.js'));
   writeFakeKernel(dir);
   return dir;
 }
@@ -110,7 +114,7 @@ test('worker_host.js stays CommonJS under the repo type:module ancestor', async 
   }
 
   const appDir = seedWorkerApp();
-  const child = spawn(process.execPath, [workerHost, '{}'], {
+  const child = spawn(process.execPath, [join(appDir, 'worker_host.js'), '{}'], {
     cwd: appDir,
     env: {
       ...process.env,

@@ -25,7 +25,12 @@ const I18N = {
     start: 'Start TUN',
     stop: 'Stop TUN',
     ping: 'Ping test',
-    fetchKernel: 'Fetch kernel',
+    fetchKernel: 'Fetch Clash kernel',
+    elevate: 'Elevate',
+    tunUnavailableTitle: 'TUN unavailable',
+    tunUnavailableBody: 'This host cannot create a virtual NIC. On Linux, /dev/net/tun is missing or not usable.',
+    elevationDeniedTitle: 'Elevation denied',
+    elevationDeniedBody: 'The privilege prompt was cancelled or unsupported. TUN was not started.',
     hint: 'Starts a Clash TUN virtual NIC with a DIRECT outbound. This is a local proxy client, not a remote attack tool.',
     logsTitle: 'Logs',
     logsHint: 'Last 10 entries',
@@ -58,7 +63,12 @@ const I18N = {
     start: '启动 TUN',
     stop: '停止 TUN',
     ping: '连通性测试',
-    fetchKernel: '获取内核',
+    fetchKernel: '获取 Clash 内核',
+    elevate: '提权',
+    tunUnavailableTitle: 'TUN 不可用',
+    tunUnavailableBody: '此主机无法创建虚拟网卡。在 Linux 上，/dev/net/tun 缺失或不可用。',
+    elevationDeniedTitle: '提权被拒绝',
+    elevationDeniedBody: '提权提示被取消或不支持。未启动 TUN。',
     hint: '启动 Clash TUN 虚拟网卡与直连出站。这是本地代理客户端，不是攻击工具。',
     logsTitle: '日志',
     logsHint: '仅保留最近 10 条',
@@ -91,7 +101,12 @@ const I18N = {
     start: '啟動 TUN',
     stop: '停止 TUN',
     ping: '連通性測試',
-    fetchKernel: '取得核心',
+    fetchKernel: '取得 Clash 核心',
+    elevate: '提權',
+    tunUnavailableTitle: 'TUN 不可用',
+    tunUnavailableBody: '此主機無法建立虛擬網卡。在 Linux 上，/dev/net/tun 缺失或不可用。',
+    elevationDeniedTitle: '提權被拒絕',
+    elevationDeniedBody: '提權提示被取消或不支援。未啟動 TUN。',
     hint: '啟動 Clash TUN 虛擬網卡與直連出站。這是本機代理用戶端，不是攻擊工具。',
     logsTitle: '日誌',
     logsHint: '僅保留最近 10 筆',
@@ -116,11 +131,14 @@ const dom = {
   btnStart: document.getElementById('btn-start'),
   btnStop: document.getElementById('btn-stop'),
   btnPing: document.getElementById('btn-ping'),
+  btnElevate: document.getElementById('btn-elevate'),
   btnFetch: document.getElementById('btn-fetch'),
   logs: document.getElementById('logs'),
   kernelBanner: document.getElementById('kernel-banner'),
   kernelBannerText: document.getElementById('kernel-banner-text'),
   elevateBanner: document.getElementById('elevate-banner'),
+  tunBanner: document.getElementById('tun-banner'),
+  tunBannerText: document.getElementById('tun-banner-text'),
   remoteBanner: document.getElementById('remote-banner'),
   remoteBannerText: document.getElementById('remote-banner-text'),
 };
@@ -285,10 +303,19 @@ function applySnapshot(snapshot) {
     }
   }
   if (dom.elevateBanner) {
-    dom.elevateBanner.hidden = !(snapshot.needsElevation || snapshot.elevating) || snapshot.localProcessUnsupported;
+    const denied = snapshot.uiState === 'elevationDenied';
+    const needed = snapshot.uiState === 'elevationRequired' || snapshot.needsElevation || snapshot.elevating;
+    dom.elevateBanner.hidden = !(denied || needed) || snapshot.localProcessUnsupported;
+  }
+  if (dom.tunBanner) {
+    const unavailable = snapshot.uiState === 'tunUnavailable' || snapshot.tunAvailable === false;
+    dom.tunBanner.hidden = !unavailable || snapshot.localProcessUnsupported;
+    if (unavailable && snapshot.error && dom.tunBannerText) {
+      dom.tunBannerText.textContent = snapshot.error;
+    }
   }
   if (dom.remoteBanner) {
-    const show = Boolean(snapshot.localProcessUnsupported || snapshot.tunAvailable === false);
+    const show = Boolean(snapshot.remoteUnsupported || snapshot.localProcessUnsupported || snapshot.uiState === 'remoteUnsupported');
     dom.remoteBanner.hidden = !show;
     if (show && snapshot.unsupportedReason && dom.remoteBannerText) {
       dom.remoteBannerText.textContent = snapshot.unsupportedReason;
@@ -320,7 +347,7 @@ async function withBusy(fn) {
 }
 
 function setButtonsDisabled(disabled) {
-  for (const btn of [dom.btnStart, dom.btnStop, dom.btnPing, dom.btnFetch]) {
+  for (const btn of [dom.btnStart, dom.btnStop, dom.btnPing, dom.btnElevate, dom.btnFetch]) {
     if (btn) btn.disabled = disabled;
   }
 }
@@ -369,6 +396,12 @@ function bind() {
     dom.btnPing.addEventListener('click', () => withBusy(async () => {
       const port = normalizePort(dom.portInput && dom.portInput.value);
       const result = await callWorker('ping', { port });
+      applySnapshot(result);
+    }));
+  }
+  if (dom.btnElevate) {
+    dom.btnElevate.addEventListener('click', () => withBusy(async () => {
+      const result = await callWorker('elevate');
       applySnapshot(result);
     }));
   }
