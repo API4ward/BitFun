@@ -259,11 +259,13 @@ The specification is delivered incrementally. Current state:
       `open_miniapp_full_window`; automatic `install` (create/import),
       `uninstall` (delete), and `stop` (worker stop) dispatch with
       `miniapp-lifecycle` events.
-- [~] Web UI: `MiniAppAPI` gains `setViewMode` / `setLifecycleScripts` /
+- [x] Web UI: `MiniAppAPI` gains `setViewMode` / `setLifecycleScripts` /
       `runLifecycleEvent` / `openFullWindow` and `view_mode` / `lifecycle` types;
-      opening an app branches on view mode (`full` opens an independent OS window
-      via the `?bitfunWindow=miniapp` standalone render, `front` opens a tab) and
-      fires the `start` lifecycle event on activation. Remaining: a dedicated
-      collapsed **background** panel surface and an in-UI view-mode selector.
+      opening an app branches on view mode — `full` opens an independent OS
+      window via the `?bitfunWindow=miniapp` standalone render, `background`
+      stays resident in the collapsed `MiniAppBackgroundDock` panel, `front`
+      opens a tab — and fires the `start` lifecycle event on activation. The
+      gallery detail modal exposes a view-mode selector (background / tab /
+      window).
 
 Each subsequent change keeps this table current.
