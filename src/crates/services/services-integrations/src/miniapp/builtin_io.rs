@@ -1,7 +1,7 @@
 //! Built-in MiniApp seed and marker filesystem IO.
 
 use bitfun_product_domains::miniapp::builtin::{
-    build_builtin_package_json, build_builtin_seed_meta, builtin_source_files,
+    build_builtin_package_json, build_builtin_seed_meta, builtin_extra_files, builtin_source_files,
     parse_builtin_install_marker, preserved_builtin_created_at, serialize_builtin_install_marker,
     BuiltinInstallMarker, BuiltinMiniAppBundle, BUILTIN_INSTALL_MARKER,
     BUILTIN_PLACEHOLDER_COMPILED_HTML, LEGACY_BUILTIN_VERSION_MARKER,
@@ -130,6 +130,20 @@ pub async fn prepare_builtin_seed_bundle_files(
         write_text_file(&source_dir.join(file_name), content).await?;
     }
 
+    for (relative_path, content) in builtin_extra_files(app) {
+        let extra_path = app_dir.join(relative_path);
+        if let Some(parent) = extra_path.parent() {
+            tokio::fs::create_dir_all(parent).await.map_err(|source| {
+                MiniAppBuiltinIoError::Io {
+                    action: "create dir",
+                    path: parent.to_path_buf(),
+                    source,
+                }
+            })?;
+        }
+        write_text_file(&extra_path, content).await?;
+    }
+
     let pkg = build_builtin_package_json(app.id);
     let pkg_json =
         serde_json::to_string_pretty(&pkg).map_err(MiniAppBuiltinIoError::PackageSerialization)?;
@@ -216,6 +230,37 @@ mod tests {
                 .await
                 .unwrap(),
             r#"{"kept":true}"#
+        );
+
+        let _ = tokio::fs::remove_dir_all(dir).await;
+    }
+
+    #[tokio::test]
+    async fn prepare_builtin_seed_bundle_files_writes_extra_files() {
+        let dir = scratch_dir("extra");
+        let app = BuiltinMiniAppBundle {
+            extra_files: &[
+                ("hooks/install.js", "console.log('install')"),
+                ("scripts/start.js", "console.log('start')"),
+            ],
+            ..BUILTIN_APPS[0]
+        };
+
+        prepare_builtin_seed_bundle_files(&dir, &app, 1234)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            tokio::fs::read_to_string(dir.join("hooks").join("install.js"))
+                .await
+                .unwrap(),
+            "console.log('install')"
+        );
+        assert_eq!(
+            tokio::fs::read_to_string(dir.join("scripts").join("start.js"))
+                .await
+                .unwrap(),
+            "console.log('start')"
         );
 
         let _ = tokio::fs::remove_dir_all(dir).await;

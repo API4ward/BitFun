@@ -319,6 +319,9 @@ The specification is delivered incrementally. Current state:
       `MiniAppManager::run_named_script` / `set_scripts`, desktop
       `miniapp_run_script` / `miniapp_set_scripts`, `MiniAppAPI` + gallery Run
       UI, `scripts/` carried on import — with contract + manager tests.
+- [x] Built-in seed writes `BuiltinMiniAppBundle.extra_files` at the app root
+      (hooks and named scripts). Existing builtins keep an empty list so their
+      content hash is unchanged.
 
 ### Design boundary: scripts and the market
 

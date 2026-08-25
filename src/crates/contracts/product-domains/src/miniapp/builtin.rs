@@ -102,6 +102,10 @@ pub struct BuiltinMiniAppBundle {
     pub ui_js: &'static str,
     pub worker_js: &'static str,
     pub esm_dependencies_json: &'static str,
+    /// Extra files written at the app root (hooks, named scripts, READMEs).
+    /// Paths are relative to the installed app directory. Empty for apps that
+    /// only ship the standard `source/` quartet.
+    pub extra_files: &'static [(&'static str, &'static str)],
 }
 
 /// Built-in MiniApps that ship with the product-domain package.
@@ -118,6 +122,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/gomoku/ui.js"),
         worker_js: include_str!("builtin/assets/gomoku/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-daily-divination",
@@ -128,6 +133,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/divination/ui.js"),
         worker_js: include_str!("builtin/assets/divination/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-regex-playground",
@@ -138,6 +144,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/regex-playground/ui.js"),
         worker_js: include_str!("builtin/assets/regex-playground/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-coding-selfie",
@@ -148,6 +155,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/coding-selfie/ui.js"),
         worker_js: include_str!("builtin/assets/coding-selfie/worker.js"),
         esm_dependencies_json: "[]",
+        extra_files: &[],
     },
     BuiltinMiniAppBundle {
         id: "builtin-ppt-live",
@@ -158,6 +166,7 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         ui_js: include_str!("builtin/assets/ppt-live/dist/ui.bundle.js"),
         worker_js: include_str!("builtin/assets/ppt-live/worker.js"),
         esm_dependencies_json: include_str!("builtin/assets/ppt-live/esm_dependencies.json"),
+        extra_files: &[],
     },
 ];
 
@@ -173,6 +182,11 @@ pub fn builtin_content_hash(app: &BuiltinMiniAppBundle) -> String {
         "esm_dependencies.json",
         app.esm_dependencies_json,
     );
+    // Extra files are hashed only when present so existing builtins keep their
+    // content hash (and skip a no-op reseed) after this additive field landed.
+    for (relative_path, content) in app.extra_files {
+        hash_builtin_asset(&mut hasher, relative_path, content);
+    }
     format!("sha256:{}", hex_encode(&hasher.finalize()))
 }
 
@@ -325,6 +339,10 @@ pub fn builtin_source_files(app: &BuiltinMiniAppBundle) -> [(&'static str, &'sta
     ]
 }
 
+pub fn builtin_extra_files(app: &BuiltinMiniAppBundle) -> &'static [(&'static str, &'static str)] {
+    app.extra_files
+}
+
 fn hash_builtin_asset(hasher: &mut Sha256, name: &str, content: &str) {
     hasher.update(name.as_bytes());
     hasher.update([0u8]);
@@ -350,8 +368,8 @@ mod tests {
 
     use super::{
         build_builtin_seed_artifacts, builtin_content_hash, seed_builtin_miniapp_with_host,
-        BuiltinInstallMarker, BuiltinMiniAppSeedBundleRequest, BuiltinMiniAppSeedHost,
-        BuiltinMiniAppSeedOutcome, BuiltinSeedArtifacts, BUILTIN_APPS,
+        BuiltinInstallMarker, BuiltinMiniAppBundle, BuiltinMiniAppSeedBundleRequest,
+        BuiltinMiniAppSeedHost, BuiltinMiniAppSeedOutcome, BuiltinSeedArtifacts, BUILTIN_APPS,
     };
     use crate::miniapp::ports::{MiniAppPortFuture, MiniAppPortResult};
     use std::sync::{Arc, Mutex};
@@ -633,5 +651,35 @@ mod tests {
         assert!(!app.html.contains("src=\"./ui.js\""));
         assert!(!app.html.contains("href=\"./style.css\""));
         assert!(app.css.contains("--bitfun-bg"));
+    }
+
+    #[test]
+    fn extra_files_change_content_hash_only_when_present() {
+        let base = BuiltinMiniAppBundle {
+            id: "builtin-demo",
+            version: 1,
+            meta_json: r#"{"id":"builtin-demo"}"#,
+            html: "<html></html>",
+            css: "body{}",
+            ui_js: "/* ui */",
+            worker_js: "/* worker */",
+            esm_dependencies_json: "[]",
+            extra_files: &[],
+        };
+        let with_script = BuiltinMiniAppBundle {
+            extra_files: &[("scripts/start.js", "console.log('start')")],
+            ..base
+        };
+        assert_eq!(
+            super::builtin_content_hash(&base),
+            super::builtin_content_hash(&BuiltinMiniAppBundle {
+                extra_files: &[],
+                ..base
+            })
+        );
+        assert_ne!(
+            super::builtin_content_hash(&base),
+            super::builtin_content_hash(&with_script)
+        );
     }
 }
