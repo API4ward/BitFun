@@ -233,6 +233,7 @@ agent-runtime = [
     "bitfun-services-core/workspace-text-runtime",
     "bitfun-services-core/session-git",
     "bitfun-services-core/token-usage-statistics",
+    "user-secrets",
     "filesystem",
     "local-storage",
     "process-runtime",
@@ -420,6 +421,7 @@ review-platform = ["bitfun-services-integrations/review-platform"]
 service-integrations = ["announcement", "file-watch", "git", "review-platform"]
 diagnostics = ["bitfun-services-core/diagnostics"]
 diff = ["bitfun-services-core/diff"]
+user-secrets = ["bitfun-services-core/user-secrets"]
 dispatch-store = ["dep:base64", "local-storage", "bitfun-services-core/dispatch-workspace"]
 filesystem = ["bitfun-services-core/filesystem"]
 local-storage = ["dep:bitfun-agent-tools", "bitfun-services-core/local-storage"]

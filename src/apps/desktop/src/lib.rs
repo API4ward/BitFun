@@ -1972,6 +1972,10 @@ pub async fn run() {
             api::insights_api::cancel_insights_generation,
             // Token usage statistics API
             api::token_usage_api::get_token_usage_statistics,
+            // User secret variables (settings); values never leave the host vault
+            api::user_secrets_api::list_user_secrets,
+            api::user_secrets_api::upsert_user_secret,
+            api::user_secrets_api::delete_user_secret,
             // SSH Remote API
             api::ssh_api::ssh_list_saved_connections,
             api::ssh_api::ssh_save_connection,

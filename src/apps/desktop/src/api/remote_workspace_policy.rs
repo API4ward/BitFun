@@ -382,6 +382,7 @@ pub const REMOTE_WORKSPACE_COMMAND_POLICIES: &[(&str, RemoteWorkspacePolicy)] = 
     ("delete_session", RemoteWorkspacePolicy::LegacyUnaudited),
     ("delete_skill", RemoteWorkspacePolicy::LegacyUnaudited),
     ("delete_subagent", RemoteWorkspacePolicy::LegacyUnaudited),
+    ("delete_user_secret", RemoteWorkspacePolicy::LocalOnly),
     // Detached dispatch is routed by its own immutable target and observer
     // index, never by the currently open workspace.
     ("dispatch_cancel", RemoteWorkspacePolicy::WorkspaceAgnostic),
@@ -957,6 +958,7 @@ pub const REMOTE_WORKSPACE_COMMAND_POLICIES: &[(&str, RemoteWorkspacePolicy)] = 
         "list_subscription_accounts",
         RemoteWorkspacePolicy::LocalOnly,
     ),
+    ("list_user_secrets", RemoteWorkspacePolicy::LocalOnly),
     (
         "list_visible_subagents",
         RemoteWorkspacePolicy::RemoteRouted,
@@ -2046,6 +2048,7 @@ pub const REMOTE_WORKSPACE_COMMAND_POLICIES: &[(&str, RemoteWorkspacePolicy)] = 
         "upload_image_contexts",
         RemoteWorkspacePolicy::LegacyUnaudited,
     ),
+    ("upsert_user_secret", RemoteWorkspacePolicy::LocalOnly),
     ("validate_config", RemoteWorkspacePolicy::LegacyUnaudited),
     (
         "validate_skill_path",

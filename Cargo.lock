@@ -1541,6 +1541,7 @@ dependencies = [
 name = "bitfun-services-core"
 version = "0.2.19"
 dependencies = [
+ "aes-gcm",
  "anyhow",
  "async-trait",
  "base64 0.22.1",
@@ -1558,6 +1559,7 @@ dependencies = [
  "libc",
  "log",
  "notify",
+ "rand 0.8.7",
  "regex",
  "rusqlite",
  "serde",

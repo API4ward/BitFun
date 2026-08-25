@@ -49,6 +49,8 @@ pub mod storage_cleanup;
 pub mod system;
 #[cfg(feature = "local-storage")]
 pub mod token_usage;
+#[cfg(feature = "user-secrets")]
+pub mod user_secrets;
 #[cfg(feature = "workspace-runtime")]
 pub mod workspace;
 #[cfg(feature = "workspace-identity")]

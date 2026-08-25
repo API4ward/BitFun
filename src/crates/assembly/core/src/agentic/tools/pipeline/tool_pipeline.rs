@@ -28,9 +28,10 @@ use bitfun_agent_tools::{
     build_tool_execution_timeout_presentation,
     build_user_rejected_tool_presentation_with_instruction,
     build_user_steering_interrupted_presentation, build_write_tail_closure_notice,
-    render_tool_result_for_assistant, validate_tool_execution_admission, PermissionIntent,
-    ResolvedToolInvocation, ToolExecutionAdmissionRejection, ToolExecutionAdmissionRequest,
-    ToolExecutionErrorPresentation, GET_TOOL_SPEC_TOOL_NAME, USER_STEERING_INTERRUPTED_MESSAGE,
+    render_tool_result_for_assistant, resolve_secret_placeholders_in_value,
+    validate_tool_execution_admission, PermissionIntent, ResolvedToolInvocation,
+    ToolExecutionAdmissionRejection, ToolExecutionAdmissionRequest, ToolExecutionErrorPresentation,
+    GET_TOOL_SPEC_TOOL_NAME, USER_STEERING_INTERRUPTED_MESSAGE,
 };
 use bitfun_runtime_ports::{
     PermissionReply, PermissionRequest, PermissionRequestSource, PermissionRequestSourceKind,
@@ -2128,7 +2129,11 @@ impl ToolPipeline {
 
         let tool_context = self.build_tool_use_context(task, cancellation_token);
 
-        let execution_future = tool.call(task.effective_arguments(), &tool_context);
+        // Resolve {{secret}} placeholders into a local copy used only for
+        // execution. Wire/history arguments stay unresolved so the model never
+        // sees plaintext secret values.
+        let execution_arguments = resolve_tool_execution_arguments(task).await?;
+        let execution_future = tool.call(&execution_arguments, &tool_context);
 
         let timeout_owner = resolve_contextual_tool(
             Arc::clone(&tool),
@@ -2194,7 +2199,28 @@ impl ToolPipeline {
             cancellation_token,
         )
     }
+}
 
+/// Resolve `{{secret}}` placeholders for tool execution only.
+///
+/// Persisted / model-visible arguments stay on `task.effective_arguments()`;
+/// this returns a separate Value used solely as `tool.call` input.
+async fn resolve_tool_execution_arguments(task: &ToolTask) -> BitFunResult<serde_json::Value> {
+    let wire_args = task.effective_arguments().clone();
+    #[cfg(feature = "user-secrets")]
+    {
+        let secrets = crate::user_secrets::load_user_secret_values().await?;
+        resolve_secret_placeholders_in_value(&wire_args, &secrets)
+            .map_err(|e| BitFunError::Tool(e.to_string()))
+    }
+    #[cfg(not(feature = "user-secrets"))]
+    {
+        let _ = resolve_secret_placeholders_in_value;
+        Ok(wire_args)
+    }
+}
+
+impl ToolPipeline {
     /// Handle streaming results
     async fn handle_streaming_results(
         &self,

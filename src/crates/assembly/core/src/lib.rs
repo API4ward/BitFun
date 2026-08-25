@@ -61,6 +61,8 @@ mod runtime_ownership_tests;
 pub mod service; // Workspace, Config, FileSystem, Terminal, Git
 #[cfg(feature = "agent-runtime")]
 pub(crate) mod service_agent_runtime;
+#[cfg(feature = "user-secrets")]
+pub mod user_secrets;
 pub mod util; // General types, errors, helper functions
 
 // Re-export debug_log from infrastructure for backward compatibility.

@@ -28,6 +28,7 @@ import {
   KeyboardShortcutsTab,
   McpToolsConfig,
   MemoriesConfig,
+  SecretsConfig,
   QuickActionsConfig,
   ReviewConfig,
   SessionPermissionsConfig,
@@ -71,6 +72,7 @@ function resolveSettingsContent(tab: ConfigTab): React.ComponentType | null {
     case 'voice-input':             return VoiceInputConfig;
     case 'review':                  return ReviewConfig;
     case 'memories':                return MemoriesConfig;
+    case 'secrets':                 return SecretsConfig;
     case 'mcp-tools':               return McpToolsConfig;
     case 'external-sources':        return ExternalSourcesConfig;
     // Hooks are part of the external AI applications surface.

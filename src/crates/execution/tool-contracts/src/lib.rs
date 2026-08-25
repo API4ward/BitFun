@@ -18,6 +18,7 @@ pub mod input_validator;
 #[cfg(feature = "mcp-bridge")]
 pub mod mcp_tool_bridge;
 pub mod permission_intent;
+pub mod secret_placeholders;
 pub mod tool_execution_presentation;
 pub mod tool_result_storage;
 pub mod tool_snapshot;
@@ -108,6 +109,10 @@ pub use mcp_tool_bridge::{
     MCP_TOOL_DELIMITER, MCP_TOOL_PREFIX,
 };
 pub use permission_intent::PermissionIntent;
+pub use secret_placeholders::{
+    resolve_secret_placeholders_in_text, resolve_secret_placeholders_in_value,
+    text_contains_secret_placeholder, SecretPlaceholderError,
+};
 pub use tool_execution_presentation::{
     build_invalid_tool_call_error_message, build_normal_tool_json_repair_notice,
     build_permission_denied_tool_presentation, build_tool_call_truncation_recovery_notice,
