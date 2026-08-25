@@ -81,6 +81,8 @@ The canonical layout (owned by `MiniAppStorageLayout` in
 │   ├── uninstall.js
 │   ├── start.js
 │   └── stop.js
+├── scripts/               # (optional) named capability scripts — see §2b
+│   └── <name>.js
 └── versions/
     └── v{N}.json          # Full snapshots for rollback
 ```
@@ -185,6 +187,37 @@ layer never touches the filesystem.
 
 ---
 
+## 2b. Named scripts (capability extension)
+
+Beyond the four fixed lifecycle hooks, an app may ship **named scripts** to
+extend its capabilities — arbitrary commands the author bundles (recommended
+under `scripts/`) and invokes on demand.
+
+Declared in `meta.json` under `scripts` (`Vec<MiniAppScriptDef>`):
+
+```json
+{
+  "scripts": [
+    { "name": "build", "path": "scripts/build.js", "description": "Rebuild output" },
+    { "name": "sync",  "path": "scripts/sync.js" }
+  ]
+}
+```
+
+- `name` is the stable invocation id; `path` is resolved against the app root
+  with the same traversal guard as lifecycle scripts (`find_script_path` +
+  `plan_named_script`), and run with the detected JS runtime.
+- Invocation: `MiniAppManager::run_named_script(app_id, name, args)` →
+  desktop command `miniapp_run_script` (emits a `miniapp-script` event with the
+  outcome). The gallery detail modal lists declared scripts with a Run button;
+  `MiniAppAPI.runScript` / `setScripts` back it.
+- Execution semantics match §2.4: trusted host code in the app dir, with
+  `BITFUN_MINIAPP_{ID,DIR,SCRIPT,POLICY}` env and forwarded CLI `args`,
+  captured stdout/stderr/exit-code, best-effort (failures surfaced, never
+  auto-rollback).
+- Named scripts are part of the content hash and carried on import (the
+  `scripts/` directory travels with the app).
+
 ## 3. View modes
 
 ### 3.1 Modes
@@ -281,11 +314,24 @@ The specification is delivered incrementally. Current state:
   the script during the install event (marker file written with `BITFUN_MINIAPP_*`
   env context), with `hooks/` carried into the installed app dir.
 
-### Known follow-ups
+- [x] Named scripts: `MiniAppScriptDef` + `scripts` manifest field,
+      `find_script_path` / `plan_named_script`, args-aware `run_miniapp_script`,
+      `MiniAppManager::run_named_script` / `set_scripts`, desktop
+      `miniapp_run_script` / `miniapp_set_scripts`, `MiniAppAPI` + gallery Run
+      UI, `scripts/` carried on import — with contract + manager tests.
 
-- Market-package distribution does not yet bundle the `hooks/` directory (the
-  market ZIP whitelist is a separately validated contract); lifecycle scripts
-  currently ship with user-created and folder-imported apps. Extending the market
-  package/validator to carry hooks is a follow-up.
+### Design boundary: scripts and the market
+
+Lifecycle hooks and named scripts run as **trusted, host-privileged** code
+(outside the iframe sandbox). They are therefore supported for **user-created
+and folder-imported** apps, where the user is the author/installer of that code.
+
+Market-distributed packages intentionally do **not** carry `hooks/` or
+`scripts/`: the market ZIP is a strict, separately-validated whitelist
+(`meta.json` + `source/*`), and allowing a downloaded package to ship
+host-privileged scripts that auto-run on install would be a security escalation.
+Bringing scripts to market apps is a future item that requires an explicit
+review/consent model (and matching client + server validator changes), not a
+simple whitelist widening.
 
 Each subsequent change keeps this table current.
