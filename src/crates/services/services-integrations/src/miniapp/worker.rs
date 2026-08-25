@@ -133,6 +133,12 @@ impl JsWorker {
                     .await;
                 }
             }
+            // The worker died or closed stderr. Fail in-flight RPCs immediately
+            // instead of waiting for node.timeout_ms (often 120s).
+            let mut guard = pending_clone.lock().await;
+            for (_id, tx) in guard.drain() {
+                let _ = tx.send(Err("Worker process exited".to_string()));
+            }
         });
 
         Ok(Self {

@@ -323,6 +323,11 @@ function createRunner(appDir, options) {
           stdio: ['ignore', logFd, logFd],
           windowsHide: true,
         });
+        // An unhandled ChildProcess 'error' (ENOENT, EACCES, exec failure)
+        // crashes the MiniApp worker and leaves a defunct node under the host.
+        child.on('error', (error) => {
+          lastError = error && error.message ? error.message : String(error);
+        });
         if (!child.pid) {
           lastError = 'v2ray spawned without a pid';
           continue;

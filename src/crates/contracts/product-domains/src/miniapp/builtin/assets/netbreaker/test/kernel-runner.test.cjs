@@ -81,3 +81,63 @@ test('ensureKernel without fetch does not invent a binary', async () => {
   assert.equal(result.fetched, false);
   assert.match(result.error || result.kernelError, /kernel not found/i);
 });
+
+function writeFakeKernel(dir) {
+  const scriptsDir = join(dir, 'scripts');
+  mkdirSync(scriptsDir, { recursive: true });
+  const kernelPath = join(scriptsDir, 'v2ray');
+  writeFileSync(kernelPath, '#!/usr/bin/env node\nsetInterval(() => {}, 1 << 30);\n');
+  try {
+    const { chmodSync } = require('node:fs');
+    chmodSync(kernelPath, 0o755);
+  } catch {
+    /* ignore */
+  }
+  return kernelPath;
+}
+
+test('start() returns promptly while the detached kernel keeps running', () => {
+  const dir = scratch();
+  writeFakeKernel(dir);
+  const runner = createRunner(dir);
+  const startedAt = Date.now();
+  const started = runner.start({ port: 18081 });
+  const elapsedMs = Date.now() - startedAt;
+  assert.equal(started.ok, true);
+  assert.equal(started.running, true);
+  assert.ok(Number.isInteger(started.pid) && started.pid > 0);
+  assert.ok(elapsedMs < 2000, `start() blocked for ${elapsedMs}ms`);
+  assert.equal(runner.isRunning(), true);
+  const stopped = runner.stop();
+  assert.equal(stopped.running, false);
+});
+
+test('start.js named script exits while the kernel stays up', () => {
+  const { spawnSync } = require('node:child_process');
+  const dir = scratch();
+  writeFakeKernel(dir);
+  const startJs = join(__dirname, '..', 'scripts', 'start.js');
+  const stopJs = join(__dirname, '..', 'scripts', 'stop.js');
+  const env = { ...process.env, BITFUN_MINIAPP_DIR: dir };
+  const startedAt = Date.now();
+  const started = spawnSync(process.execPath, [startJs, '--port', '18082'], {
+    env,
+    encoding: 'utf8',
+    timeout: 4000,
+    windowsHide: true,
+  });
+  const elapsedMs = Date.now() - startedAt;
+  assert.equal(started.status, 0, started.stderr || started.stdout);
+  assert.ok(elapsedMs < 3000, `start.js blocked for ${elapsedMs}ms`);
+  const payload = JSON.parse(started.stdout);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.running, true);
+  const stopped = spawnSync(process.execPath, [stopJs], {
+    env,
+    encoding: 'utf8',
+    timeout: 4000,
+    windowsHide: true,
+  });
+  assert.equal(stopped.status, 0, stopped.stderr || stopped.stdout);
+  assert.equal(JSON.parse(stopped.stdout).running, false);
+});

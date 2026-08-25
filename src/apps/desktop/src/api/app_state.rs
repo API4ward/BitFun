@@ -554,6 +554,8 @@ impl AppState {
 }
 
 /// Try every layout we know about for `worker_host.js`, dev or bundled:
+/// The sibling `resources/package.json` must stay `"type": "commonjs"` so Node
+/// does not inherit the repo-root `"type": "module"` during `tauri dev`.
 ///   1. `CARGO_MANIFEST_DIR/resources/worker_host.js` — `cargo run` / `tauri dev`.
 ///   2. `<exe_dir>/resources/worker_host.js` — generic side-by-side bundle.
 ///   3. `<exe_dir>/../Resources/resources/worker_host.js` — macOS `.app` (Tauri
