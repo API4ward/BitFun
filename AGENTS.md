@@ -368,3 +368,50 @@ document a command only when a real workflow needs it.
 ## Agent-doc priority
 
 Prefer the nearest matching `AGENTS.md` / `AGENTS-CN.md` for the directory you are changing. If local guidance conflicts with this file, follow the more specific, nearer document.
+
+## Cursor Cloud specific instructions
+
+These notes cover non-obvious gotchas for developing BitFun inside the Cloud
+Agent VM. Standard commands live in `README.md`, `CONTRIBUTING.md`, and
+`package.json`; only the surprises are recorded here. The base image already
+has Node 22, pnpm 10.15 (Corepack), the Rust stable toolchain, and the Tauri
+Linux system libraries (webkit2gtk-4.1, gtk-3, libxdo, appindicator, librsvg2,
+tesseract/leptonica, xcb) preinstalled. The startup script only runs
+`pnpm install` plus the two generated-artifact steps below.
+
+- **Rust must be >= 1.85.** The committed lockfile pulls crates that require the
+  `edition2024` Cargo feature, so an older toolchain fails resolution with
+  "feature `edition2024` is required". The VM uses current stable (1.98+).
+- **Linker fix for `rust-lld` (`-lstdc++` not found).** Rust's default
+  `rust-lld` linker on this image does not search GCC's private lib dir, where
+  the `libstdc++.so` dev symlink lives, so C++-linking crates
+  (tesseract/leptonica in `bitfun-desktop`) fail to link. This is resolved
+  globally in `$CARGO_HOME/config.toml` (`/usr/local/cargo/config.toml`) via
+  `[env] LIBRARY_PATH = "/usr/lib/gcc/x86_64-linux-gnu/13"`. If a fresh VM ever
+  hits `unable to find library -lstdc++`, recreate that config entry.
+- **Generated TypeScript API barrel is required for the Web UI.**
+  `src/web-ui/src/generated/api/` is git-ignored and produced by
+  `pnpm --dir src/web-ui run gen:types` (which runs a `cargo test ... export`,
+  so it needs the Rust toolchain). Without it, `pnpm run type-check:web`,
+  `pnpm run lint:web`, `pnpm run dev:web`, and the Vite dev server fail to
+  resolve `@/generated/api`. `pnpm run build:web` regenerates it automatically;
+  `type-check:web` / `dev:web` do not. The startup script runs `gen:types` once
+  so the tree is ready.
+- **`bitfun-desktop` Rust builds need `src/mobile-web/dist`.** The Tauri build
+  script references it as a resource, so bare `cargo check/build -p
+  bitfun-desktop` (or `--workspace`) fails with "resource path doesn't exist"
+  until you run `pnpm run prepare:mobile-web`. `pnpm run desktop:dev` builds it
+  automatically in its prep step; the startup script also pre-builds it.
+- **Running the desktop app.** `pnpm run desktop:dev` (the primary loop) works
+  headlessly on `DISPLAY=:1`; the GUI window opens there and the Vite dev
+  server serves on `localhost:1422`. The first `tauri dev` run recompiles the
+  workspace with the `devtools` feature, which is a long cold build; subsequent
+  runs are incremental. A prebuilt debug binary can be launched faster with
+  `pnpm run desktop:preview:debug` (frontend HMR only, no Rust auto-rebuild).
+- **Exercising the AI agent needs an LLM key.** The agent chat loop is inert
+  until a provider/model is configured in Settings → Models (see README "First
+  run"). Model configuration and keys are stored under `~/.config/bitfun`
+  (outside the repo), so they are never committed.
+- **Bun** (for the CLI plugin/extension host, `pnpm run plugin-host:*` and
+  `cli:*`) is not preinstalled; install `bun@1.3.14` only if you work on the CLI
+  surface.
