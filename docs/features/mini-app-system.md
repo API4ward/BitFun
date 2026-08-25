@@ -98,7 +98,9 @@ atomically so a failed install never leaves a half-written app.
 
 The `hooks/` directory is a **recommended convention** (constant
 `HOOKS_DIR = "hooks"`), not a hard requirement: a lifecycle script path is any
-path relative to the app root (see §2.2).
+path relative to the app root (see §2.2). When an app is imported from a folder,
+the whole `hooks/` directory is copied into the installed app dir so declared
+lifecycle scripts exist at runtime.
 
 ---
 
@@ -267,5 +269,23 @@ The specification is delivered incrementally. Current state:
       opens a tab — and fires the `start` lifecycle event on activation. The
       gallery detail modal exposes a view-mode selector (background / tab /
       window).
+
+### Verified
+
+- Contracts/services/assembly: `cargo test` for `bitfun-product-domains`
+  (58 lib + 39 contract), `bitfun-services-integrations` miniapp runtime + import
+  IO, and `bitfun-core` `miniapp::manager` (incl. a real hook-script run).
+- View modes: GUI-verified live — `background` dock, `front` tab, and `full`
+  window all open, and the full window renders real app content.
+- Lifecycle: end-to-end verified — importing an app with an `install` hook runs
+  the script during the install event (marker file written with `BITFUN_MINIAPP_*`
+  env context), with `hooks/` carried into the installed app dir.
+
+### Known follow-ups
+
+- Market-package distribution does not yet bundle the `hooks/` directory (the
+  market ZIP whitelist is a separately validated contract); lifecycle scripts
+  currently ship with user-created and folder-imported apps. Extending the market
+  package/validator to carry hooks is a follow-up.
 
 Each subsequent change keeps this table current.
