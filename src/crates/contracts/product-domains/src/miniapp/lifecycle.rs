@@ -2,8 +2,10 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::miniapp::storage::MiniAppStorageLayout;
 use crate::miniapp::types::{
-    MiniApp, MiniAppAiContext, MiniAppMeta, MiniAppPermissions, MiniAppRuntimeState, MiniAppSource,
+    MiniApp, MiniAppAiContext, MiniAppLifecycleEvent, MiniAppLifecycleScripts, MiniAppMeta,
+    MiniAppPermissions, MiniAppRuntimeState, MiniAppSource, MiniAppViewMode,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -30,6 +32,8 @@ pub struct MiniAppUpdatePatch {
     pub source: Option<MiniAppSource>,
     pub permissions: Option<MiniAppPermissions>,
     pub ai_context: Option<MiniAppAiContext>,
+    pub view_mode: Option<MiniAppViewMode>,
+    pub lifecycle: Option<MiniAppLifecycleScripts>,
 }
 
 impl MiniAppUpdatePatch {
@@ -75,6 +79,8 @@ pub fn miniapp_content_hash(app: &MiniApp) -> String {
         "permissions": &app.permissions,
         "aiContext": &app.ai_context,
         "runtimeProfile": app.runtime_profile,
+        "viewMode": app.view_mode,
+        "lifecycle": &app.lifecycle,
         "i18n": &app.i18n,
     }));
     let encoded = serde_json::to_vec(&payload)
@@ -144,6 +150,8 @@ pub fn build_created_app(
         ai_context: input.ai_context,
         runtime,
         runtime_profile: Default::default(),
+        view_mode: MiniAppViewMode::default(),
+        lifecycle: MiniAppLifecycleScripts::default(),
         i18n: None,
     };
     refresh_content_hash(&mut app);
@@ -183,6 +191,12 @@ pub fn apply_update_patch(
     }
     if let Some(ai_context) = patch.ai_context {
         app.ai_context = Some(ai_context);
+    }
+    if let Some(view_mode) = patch.view_mode {
+        app.view_mode = view_mode;
+    }
+    if let Some(lifecycle) = patch.lifecycle {
+        app.lifecycle = lifecycle;
     }
 
     app.version += 1;
@@ -276,6 +290,8 @@ pub fn apply_draft_to_active(
     app.source = draft.source;
     app.permissions = draft.permissions;
     app.ai_context = draft.ai_context;
+    app.view_mode = draft.view_mode;
+    app.lifecycle = draft.lifecycle;
     app.i18n = draft.i18n;
     app.version = current.version + 1;
     app.updated_at = now;
@@ -458,6 +474,52 @@ pub fn miniapp_worker_stopped_payload(app_id: &str, reason: &str) -> Value {
     json!({ "id": app_id, "reason": reason })
 }
 
+/// A resolved lifecycle-script invocation the host runtime should execute.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MiniAppLifecyclePlan {
+    pub event: MiniAppLifecycleEvent,
+    /// Absolute path to the script file, guaranteed to be inside the app dir.
+    pub script_path: PathBuf,
+    /// The manifest-relative path, retained for logging/telemetry.
+    pub relative_path: String,
+}
+
+/// Resolve the script (if any) to run for `event`, given the app's on-disk
+/// layout and its declared lifecycle scripts.
+///
+/// Returns `None` when no script is declared or when the declared path would
+/// escape the app directory (see
+/// [`MiniAppStorageLayout::resolve_contained_relative`]). This is a pure
+/// decision: the services layer confirms the file exists and executes it.
+pub fn plan_lifecycle_script(
+    layout: &MiniAppStorageLayout,
+    scripts: &MiniAppLifecycleScripts,
+    event: MiniAppLifecycleEvent,
+) -> Option<MiniAppLifecyclePlan> {
+    let relative = scripts.script_for(event)?;
+    let script_path = layout.resolve_contained_relative(relative)?;
+    Some(MiniAppLifecyclePlan {
+        event,
+        script_path,
+        relative_path: relative.to_string(),
+    })
+}
+
+/// Frontend/telemetry payload emitted when a lifecycle script runs.
+pub fn miniapp_lifecycle_event_payload(
+    app_id: &str,
+    event: MiniAppLifecycleEvent,
+    relative_path: &str,
+    succeeded: bool,
+) -> Value {
+    json!({
+        "id": app_id,
+        "event": event.as_str(),
+        "script": relative_path,
+        "succeeded": succeeded,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -478,6 +540,8 @@ mod tests {
             ai_context: None,
             runtime: Default::default(),
             runtime_profile: Default::default(),
+            view_mode: Default::default(),
+            lifecycle: Default::default(),
             i18n: None,
         };
 
@@ -546,5 +610,135 @@ mod tests {
         assert!(should_emit_worker_restarted(true, false, true));
         assert_eq!(worker_restart_reason(true), "deps-installed");
         assert_eq!(worker_restart_reason(false), "runtime-restart");
+    }
+
+    fn sample_app() -> MiniApp {
+        build_created_app(
+            "app-1".to_string(),
+            MiniAppCreateInput {
+                name: "App".to_string(),
+                description: "Desc".to_string(),
+                icon: "box".to_string(),
+                category: "utility".to_string(),
+                tags: vec![],
+                source: MiniAppSource::default(),
+                permissions: MiniAppPermissions::default(),
+                ai_context: None,
+            },
+            "<html></html>".to_string(),
+            123,
+        )
+    }
+
+    #[test]
+    fn view_mode_defaults_to_front_and_round_trips_over_wire() {
+        assert_eq!(MiniAppViewMode::default(), MiniAppViewMode::Front);
+        for mode in [
+            MiniAppViewMode::Background,
+            MiniAppViewMode::Front,
+            MiniAppViewMode::Full,
+        ] {
+            assert_eq!(MiniAppViewMode::from_wire(mode.as_str()), mode);
+        }
+        // Unknown values fall back to Front rather than erroring.
+        assert_eq!(MiniAppViewMode::from_wire("bogus"), MiniAppViewMode::Front);
+    }
+
+    #[test]
+    fn lifecycle_scripts_report_declared_events_and_emptiness() {
+        let empty = MiniAppLifecycleScripts::default();
+        assert!(empty.is_empty());
+        for event in MiniAppLifecycleEvent::all() {
+            assert_eq!(empty.script_for(event), None);
+        }
+
+        let scripts = MiniAppLifecycleScripts {
+            install: Some("hooks/install.js".to_string()),
+            // Whitespace-only entries are treated as absent.
+            uninstall: Some("   ".to_string()),
+            start: Some(" worker.js ".to_string()),
+            stop: None,
+        };
+        assert!(!scripts.is_empty());
+        assert_eq!(
+            scripts.script_for(MiniAppLifecycleEvent::Install),
+            Some("hooks/install.js")
+        );
+        assert_eq!(scripts.script_for(MiniAppLifecycleEvent::Uninstall), None);
+        assert_eq!(
+            scripts.script_for(MiniAppLifecycleEvent::Start),
+            Some("worker.js")
+        );
+        assert_eq!(scripts.script_for(MiniAppLifecycleEvent::Stop), None);
+    }
+
+    #[test]
+    fn plan_lifecycle_script_resolves_declared_scripts_and_rejects_escapes() {
+        let layout = MiniAppStorageLayout::new("/root/miniapps", "app-1");
+        let scripts = MiniAppLifecycleScripts {
+            install: Some("hooks/install.js".to_string()),
+            uninstall: Some("../evil.js".to_string()),
+            start: Some("/etc/passwd".to_string()),
+            stop: None,
+        };
+
+        let install = plan_lifecycle_script(&layout, &scripts, MiniAppLifecycleEvent::Install)
+            .expect("install script should resolve");
+        assert_eq!(install.event, MiniAppLifecycleEvent::Install);
+        assert_eq!(install.relative_path, "hooks/install.js");
+        assert_eq!(
+            install.script_path,
+            layout.app_dir().join("hooks").join("install.js")
+        );
+
+        // Path traversal and absolute paths are rejected.
+        assert_eq!(
+            plan_lifecycle_script(&layout, &scripts, MiniAppLifecycleEvent::Uninstall),
+            None
+        );
+        assert_eq!(
+            plan_lifecycle_script(&layout, &scripts, MiniAppLifecycleEvent::Start),
+            None
+        );
+        // Undeclared events produce no plan.
+        assert_eq!(
+            plan_lifecycle_script(&layout, &scripts, MiniAppLifecycleEvent::Stop),
+            None
+        );
+    }
+
+    #[test]
+    fn content_hash_tracks_view_mode_and_lifecycle_changes() {
+        let base = sample_app();
+        let base_hash = miniapp_content_hash(&base);
+
+        let mut with_mode = base.clone();
+        with_mode.view_mode = MiniAppViewMode::Full;
+        assert_ne!(miniapp_content_hash(&with_mode), base_hash);
+
+        let mut with_hooks = base.clone();
+        with_hooks.lifecycle.install = Some("hooks/install.js".to_string());
+        assert_ne!(miniapp_content_hash(&with_hooks), base_hash);
+    }
+
+    #[test]
+    fn update_patch_applies_view_mode_and_lifecycle() {
+        let previous = sample_app();
+        let patch = MiniAppUpdatePatch {
+            view_mode: Some(MiniAppViewMode::Background),
+            lifecycle: Some(MiniAppLifecycleScripts {
+                start: Some("hooks/start.js".to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        let updated = apply_update_patch(&previous, patch, "<html></html>".to_string(), 456);
+        assert_eq!(updated.view_mode, MiniAppViewMode::Background);
+        assert_eq!(
+            updated.lifecycle.script_for(MiniAppLifecycleEvent::Start),
+            Some("hooks/start.js")
+        );
+        assert_eq!(updated.version, previous.version + 1);
     }
 }

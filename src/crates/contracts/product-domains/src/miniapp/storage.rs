@@ -20,6 +20,11 @@ pub const EMPTY_STORAGE_JSON: &str = "{}";
 pub const PLACEHOLDER_COMPILED_HTML: &str =
     "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>Loading...</body></html>";
 pub const VERSIONS_DIR: &str = "versions";
+/// Conventional directory for lifecycle hook scripts inside an app
+/// (`{app_dir}/hooks/`). Lifecycle script paths in `meta.json` are resolved
+/// relative to the app root, so hooks may also live at the app root; this
+/// constant documents the recommended layout.
+pub const HOOKS_DIR: &str = "hooks";
 pub const DRAFTS_DIR: &str = ".drafts";
 pub const DRAFTS_CLEANUP_PREFIX: &str = ".drafts.cleanup-";
 pub const DRAFTS_CLEANUP_MARKER: &str = ".cleanup-pending";
@@ -120,6 +125,22 @@ impl MiniAppStorageLayout {
         self.app_dir().join(VERSIONS_DIR)
     }
 
+    /// Recommended directory for lifecycle hook scripts (`{app_dir}/hooks/`).
+    pub fn hooks_dir(&self) -> PathBuf {
+        self.app_dir().join(HOOKS_DIR)
+    }
+
+    /// Resolve a lifecycle-script path (declared in `meta.json`, relative to the
+    /// app root) into an absolute path, rejecting anything that would escape the
+    /// app directory.
+    ///
+    /// Returns `None` when the value is empty, absolute, or contains a parent
+    /// (`..`) component. This is a pure, lexical containment check; the caller
+    /// (services layer) is still responsible for confirming the file exists.
+    pub fn resolve_contained_relative(&self, relative: &str) -> Option<PathBuf> {
+        resolve_contained_relative(&self.app_dir(), relative)
+    }
+
     pub fn version_path(&self, version: u32) -> PathBuf {
         self.versions_dir().join(format!("v{}.json", version))
     }
@@ -157,6 +178,42 @@ impl MiniAppStorageLayout {
             .as_ref()
             .join(format!("{}{}", DRAFTS_CLEANUP_PREFIX, cleanup_id))
     }
+}
+
+/// Lexically resolve `relative` under `root`, rejecting absolute paths, empty
+/// input, and any `..` / root / drive-prefix components that would escape
+/// `root`. Returns `None` when the value cannot be safely contained or resolves
+/// back to `root` itself.
+///
+/// This is a pure containment check: it does not touch the filesystem, so the
+/// caller (services layer) must still confirm the resolved file exists.
+pub fn resolve_contained_relative(root: &Path, relative: &str) -> Option<PathBuf> {
+    let trimmed = relative.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let candidate = Path::new(trimmed);
+    if candidate.is_absolute() {
+        return None;
+    }
+
+    let mut resolved = root.to_path_buf();
+    for component in candidate.components() {
+        match component {
+            std::path::Component::Normal(part) => resolved.push(part),
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir
+            | std::path::Component::RootDir
+            | std::path::Component::Prefix(_) => return None,
+        }
+    }
+
+    if resolved == root {
+        return None;
+    }
+
+    Some(resolved)
 }
 
 /// Parse package.json dependencies using the legacy MiniApp storage contract.

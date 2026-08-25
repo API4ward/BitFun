@@ -431,6 +431,8 @@ mod tests {
             ai_context: None,
             runtime: Default::default(),
             runtime_profile: Default::default(),
+            view_mode: Default::default(),
+            lifecycle: Default::default(),
             i18n: None,
         };
 

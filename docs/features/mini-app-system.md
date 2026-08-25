@@ -1,0 +1,255 @@
+# Mini App System — Design Specification
+
+**English** · Status: living specification (implemented incrementally)
+
+This document is the design specification for BitFun's **Mini App** system. It
+defines three things the runtime and UI must agree on:
+
+1. **Lifecycle events** — `install`, `uninstall`, `start`, `stop`, each of which
+   may trigger a user-defined script.
+2. **View modes** — `background` (collapsed into a panel), `front` (default, in a
+   tab), and `full` (an independent OS window).
+3. **App management** — the standardized on-disk location and directory
+   structure for an installed app.
+
+It complements the architecture map in
+[`product-architecture.md`](../architecture/product-architecture.md) and the
+security boundary in
+[`../sdlc-harness/architecture/security-boundary.md`](../sdlc-harness/architecture/security-boundary.md).
+It does **not** cover BitFun Pages / Page Functions
+(`bitfun-page-function-runtime`), which are a separate relay-hosted system.
+
+Layer ownership follows the repository boundary rules:
+
+| Concern | Owner layer | Crate / path |
+| --- | --- | --- |
+| Data shapes, pure lifecycle/view-mode decisions, path contract | Contracts | `src/crates/contracts/product-domains/src/miniapp` |
+| Concrete filesystem IO, worker/script process execution | Services | `src/crates/services/services-integrations/src/miniapp` |
+| Manager orchestration, `PathManager` wiring, event emission | Assembly | `src/crates/assembly/core/src/miniapp` |
+| Tauri commands, independent windows | Interface (desktop) | `src/apps/desktop/src/api` |
+| Gallery, scenes, panels, window hosting | Interface (web-ui) | `src/web-ui/src/app/scenes/miniapps` |
+
+---
+
+## 1. App management: local path and directory structure
+
+### 1.1 Root location
+
+Mini App data is **user-scoped**, not workspace-scoped. The root is resolved by
+`PathManager`:
+
+- `miniapps_dir()` → `{user_root}/data/miniapps/`
+- `miniapp_dir(app_id)` → `{user_root}/data/miniapps/{app_id}/`
+
+`{user_root}` is the platform BitFun home:
+
+| OS | `{user_root}` |
+| --- | --- |
+| Linux | `~/.config/bitfun` |
+| macOS | `~/Library/Application Support/BitFun` |
+| Windows | `%APPDATA%/BitFun` |
+
+The frontend mirrors the segment as `MINIAPP_DATA_PATH_SEGMENT =
+'/data/miniapps/'`. Workspace services explicitly exclude these paths from
+workspace files.
+
+`app_id` is a UUID v4 for user-created / imported / draft apps; built-ins use a
+stable `builtin-*` id.
+
+### 1.2 Per-app directory layout
+
+The canonical layout (owned by `MiniAppStorageLayout` in
+`product-domains/.../miniapp/storage.rs`):
+
+```
+{user_root}/data/miniapps/{app_id}/
+├── meta.json              # MiniAppMeta: identity, permissions, runtime state,
+│                          #   view_mode, lifecycle scripts, i18n
+├── compiled.html          # Generated sandbox document (UI + import map + bridge)
+├── package.json           # npm deps for the worker
+├── storage.json           # App key/value storage
+├── .customization.json    # Origin / market / override metadata
+├── .builtin-manifest.json # Built-in seed marker (built-ins only)
+├── source/
+│   ├── index.html
+│   ├── style.css
+│   ├── ui.js              # ESM browser module
+│   ├── worker.js          # Node/Bun worker entry
+│   └── esm_dependencies.json
+├── hooks/                 # (optional) lifecycle scripts — see §2
+│   ├── install.js
+│   ├── uninstall.js
+│   ├── start.js
+│   └── stop.js
+└── versions/
+    └── v{N}.json          # Full snapshots for rollback
+```
+
+Drafts live under a sibling sandbox and never touch the active app until
+applied:
+
+```
+{user_root}/data/miniapps/.drafts/{app_id}/{draft_id}/
+```
+
+Market install/update/rollback use temporary staging dirs
+(`.market-install-*`, `.market-update-*`, `.market-rollback-*`) and commit
+atomically so a failed install never leaves a half-written app.
+
+The `hooks/` directory is a **recommended convention** (constant
+`HOOKS_DIR = "hooks"`), not a hard requirement: a lifecycle script path is any
+path relative to the app root (see §2.2).
+
+---
+
+## 2. Lifecycle events and scripts
+
+### 2.1 Events
+
+A Mini App has four host-driven lifecycle transitions
+(`MiniAppLifecycleEvent`):
+
+| Event | When it fires | Typical use |
+| --- | --- | --- |
+| `install` | After the app's files are first committed to disk (create / import / market install) | Fetch assets, initialize `storage.json`, scaffold data |
+| `uninstall` | Before the app directory is removed | Clean up external state, revoke tokens |
+| `start` | When the app is activated / its worker is brought up | Warm caches, open connections |
+| `stop` | When the app is deactivated / its worker is torn down | Flush state, close connections |
+
+These are distinct from the in-iframe UI hooks (`app.onActivate` /
+`app.onDeactivate`) exposed by the bridge, which react to focus changes inside
+an already-running app. Lifecycle scripts run in the **host JS runtime**
+(Bun/Node), not in the sandboxed iframe.
+
+### 2.2 Declaring scripts
+
+Scripts are declared in `meta.json` under `lifecycle`
+(`MiniAppLifecycleScripts`):
+
+```json
+{
+  "lifecycle": {
+    "install": "hooks/install.js",
+    "uninstall": "hooks/uninstall.js",
+    "start": "hooks/start.js",
+    "stop": "hooks/stop.js"
+  }
+}
+```
+
+Rules:
+
+- Each value is a path **relative to the app root**. `hooks/install.js` and
+  `worker.js` are both valid; the recommended location is `hooks/`.
+- Whitespace-only or absent entries mean "no script for this event".
+- The field is omitted from `meta.json` entirely when no scripts are declared
+  (`skip_serializing_if`), so existing apps are unaffected.
+
+### 2.3 Resolution and safety
+
+Path resolution is a **pure decision** in the contracts layer
+(`plan_lifecycle_script` → `MiniAppStorageLayout::resolve_contained_relative`):
+
+- The relative path is resolved against the app directory.
+- Absolute paths, `..` parent components, and root/drive prefixes are
+  **rejected** — a script can never escape its own app directory.
+- A path that resolves back to the app root itself is rejected.
+
+The services layer then confirms the file exists and executes it; the contracts
+layer never touches the filesystem.
+
+### 2.4 Execution semantics
+
+- Scripts run with the detected runtime (`RuntimeKind::Bun` preferred, else
+  `Node`), using the same non-interactive process facade as the worker
+  (`bitfun_services_core::process_manager`), so no console window flashes on
+  Windows and GUI/headless hosts behave identically.
+- The working directory is the app directory; the resolved script path is
+  passed as the entry.
+- Scripts run with the app's resolved permission policy (fs/net/shell scopes),
+  identical to the worker, so a lifecycle script cannot exceed what the app is
+  already granted.
+- Each run emits a `miniapp-lifecycle` event
+  (`miniapp_lifecycle_event_payload`: `{ id, event, script, succeeded }`) for
+  the UI / telemetry.
+- Failures are surfaced, not silently swallowed. `install` failure aborts the
+  install and rolls back atomically; `uninstall` failure is reported but does
+  not block directory removal (an app must always be removable). `start` /
+  `stop` failures are reported and do not wedge the worker lifecycle.
+
+---
+
+## 3. View modes
+
+### 3.1 Modes
+
+`MiniAppViewMode` (persisted in `meta.json` as `view_mode`) selects how the host
+presents the app:
+
+| Mode | Wire value | Presentation |
+| --- | --- | --- |
+| `Background` | `background` | Collapsed into a compact resident panel (dock / side rail). Stays running without occupying the main content area. |
+| `Front` (default) | `front` | Opens inside a tab in the main content scene area. This is today's behavior and the default for existing apps. |
+| `Full` | `full` | Opens in its own independent OS window, detached from the main shell. |
+
+`view_mode` defaults to `Front`; unknown wire values fall back to `Front`
+(`MiniAppViewMode::from_wire`), so an older client reading a newer mode degrades
+to a tab rather than failing.
+
+### 3.2 Semantics
+
+- The mode is a **persisted app property** (part of the content hash), editable
+  by the author and via the view-mode command; it is the app's default
+  presentation.
+- The runtime may still let the user temporarily relocate an open app (e.g.
+  pop a `front` app out to a window), but the persisted `view_mode` is the
+  restore default.
+- `background` apps keep their worker resident and surface through the nav
+  running-apps entry and a compact panel; they do not claim a scene tab.
+- `full` apps are hosted in an independent desktop window that loads the same
+  compiled document and bridge as the tab host, so behavior and permissions are
+  identical across modes.
+
+### 3.3 Remote / non-desktop surfaces
+
+View mode is a presentation hint. Surfaces that cannot honor a mode (mobile web,
+CLl/TUI, peer host) must degrade explicitly to their supported presentation
+(typically `front`-equivalent) rather than silently dropping the app, per the
+repository's "degrade loudly" rule.
+
+---
+
+## 4. Data model and upgrade compatibility
+
+`MiniApp` and `MiniAppMeta` gain two additive, defaulted fields:
+
+- `view_mode: MiniAppViewMode` — `#[serde(default)]`, defaults to `Front`.
+- `lifecycle: MiniAppLifecycleScripts` — `#[serde(default)]`, omitted when empty.
+
+Both are included in `miniapp_content_hash`, so editing them is tracked like any
+other content change. Because both deserialize from absent values, **existing
+`meta.json` files load unchanged** and keep their current behavior (in-tab, no
+scripts) after an upgrade. No field that old data cannot supply is required, and
+no persisted field is repurposed — consistent with the upgrade-compatibility
+rules in the root `AGENTS.md`.
+
+---
+
+## 5. Implementation status
+
+The specification is delivered incrementally. Current state:
+
+- [x] Contracts: `MiniAppViewMode`, `MiniAppLifecycleEvent`,
+      `MiniAppLifecycleScripts`, `view_mode` / `lifecycle` fields, `HOOKS_DIR`,
+      safe path resolver, `plan_lifecycle_script`, and event payload — with unit
+      and contract tests in `bitfun-product-domains`.
+- [ ] Services: execute lifecycle scripts on install/uninstall/start/stop via the
+      process facade, with permission policy and event emission.
+- [ ] Assembly: manager dispatch of lifecycle events and view-mode updates wired
+      to `PathManager`.
+- [ ] Desktop: Tauri commands for setting view mode and for independent (`full`)
+      windows.
+- [ ] Web UI: render `background` panel, `front` tab, and `full` window; expose
+      lifecycle status.
+
+Each subsequent change keeps this table current.

@@ -222,6 +222,133 @@ pub enum MiniAppRuntimeProfile {
     MarketStrict,
 }
 
+/// How a MiniApp is presented in the host shell.
+///
+/// - `Background`: collapsed into a compact panel (dock/side rail) that keeps the
+///   app resident without occupying the main content area.
+/// - `Front` (default): opens inside a tab in the main content scene area.
+/// - `Full`: opens in its own independent OS window, detached from the main shell.
+///
+/// Persisted in `meta.json` as `view_mode`; absent values default to `Front` so
+/// existing installs keep their current in-tab behavior after an upgrade.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MiniAppViewMode {
+    Background,
+    #[default]
+    Front,
+    Full,
+}
+
+impl MiniAppViewMode {
+    /// Stable wire identifier shared with the frontend and Tauri layer.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MiniAppViewMode::Background => "background",
+            MiniAppViewMode::Front => "front",
+            MiniAppViewMode::Full => "full",
+        }
+    }
+
+    /// Parse a wire identifier; unknown values fall back to the default (`Front`).
+    pub fn from_wire(value: &str) -> Self {
+        match value {
+            "background" => MiniAppViewMode::Background,
+            "full" => MiniAppViewMode::Full,
+            _ => MiniAppViewMode::Front,
+        }
+    }
+}
+
+/// A MiniApp lifecycle transition that can trigger a user-defined script.
+///
+/// The host runs the matching script (see [`MiniAppLifecycleScripts`]) at each
+/// transition:
+/// - `Install`: after the app's files are committed to disk for the first time.
+/// - `Uninstall`: before the app directory is removed.
+/// - `Start`: when the app is activated / its worker is brought up.
+/// - `Stop`: when the app is deactivated / its worker is torn down.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MiniAppLifecycleEvent {
+    Install,
+    Uninstall,
+    Start,
+    Stop,
+}
+
+impl MiniAppLifecycleEvent {
+    /// Stable wire identifier shared with the frontend and Tauri layer.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MiniAppLifecycleEvent::Install => "install",
+            MiniAppLifecycleEvent::Uninstall => "uninstall",
+            MiniAppLifecycleEvent::Start => "start",
+            MiniAppLifecycleEvent::Stop => "stop",
+        }
+    }
+
+    /// Parse a wire identifier.
+    pub fn from_wire(value: &str) -> Option<Self> {
+        match value {
+            "install" => Some(MiniAppLifecycleEvent::Install),
+            "uninstall" => Some(MiniAppLifecycleEvent::Uninstall),
+            "start" => Some(MiniAppLifecycleEvent::Start),
+            "stop" => Some(MiniAppLifecycleEvent::Stop),
+            _ => None,
+        }
+    }
+
+    /// All lifecycle events, in canonical order.
+    pub fn all() -> [MiniAppLifecycleEvent; 4] {
+        [
+            MiniAppLifecycleEvent::Install,
+            MiniAppLifecycleEvent::Uninstall,
+            MiniAppLifecycleEvent::Start,
+            MiniAppLifecycleEvent::Stop,
+        ]
+    }
+}
+
+/// User-declared scripts run at MiniApp lifecycle transitions.
+///
+/// Each value is a path relative to the app root (for example `hooks/install.js`
+/// or `worker.js`). The host resolves it against the app directory, rejecting any
+/// path that escapes the app root, and executes it with the detected JS runtime
+/// (Bun/Node). Absent entries mean "no script for this event".
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MiniAppLifecycleScripts {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub install: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uninstall: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop: Option<String>,
+}
+
+impl MiniAppLifecycleScripts {
+    /// The declared script for `event`, if any (trimmed, non-empty).
+    pub fn script_for(&self, event: MiniAppLifecycleEvent) -> Option<&str> {
+        let raw = match event {
+            MiniAppLifecycleEvent::Install => self.install.as_deref(),
+            MiniAppLifecycleEvent::Uninstall => self.uninstall.as_deref(),
+            MiniAppLifecycleEvent::Start => self.start.as_deref(),
+            MiniAppLifecycleEvent::Stop => self.stop.as_deref(),
+        };
+        raw.map(str::trim).filter(|value| !value.is_empty())
+    }
+
+    /// Whether no lifecycle script is declared. Used by `skip_serializing_if` so
+    /// apps without hooks keep a clean `meta.json`.
+    pub fn is_empty(&self) -> bool {
+        MiniAppLifecycleEvent::all()
+            .iter()
+            .all(|event| self.script_for(*event).is_none())
+    }
+}
+
 /// Full MiniApp entity (in-memory / API).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiniApp {
@@ -252,6 +379,15 @@ pub struct MiniApp {
     #[serde(default)]
     pub runtime_profile: MiniAppRuntimeProfile,
 
+    /// How the app is presented in the host shell (background panel / front tab /
+    /// full window). Defaults to `Front`.
+    #[serde(default)]
+    pub view_mode: MiniAppViewMode,
+
+    /// User-declared lifecycle scripts (install / uninstall / start / stop).
+    #[serde(default, skip_serializing_if = "MiniAppLifecycleScripts::is_empty")]
+    pub lifecycle: MiniAppLifecycleScripts,
+
     /// Optional per-locale overrides for `name` / `description` / `tags`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub i18n: Option<MiniAppI18n>,
@@ -278,6 +414,12 @@ pub struct MiniAppMeta {
     pub runtime: MiniAppRuntimeState,
     #[serde(default)]
     pub runtime_profile: MiniAppRuntimeProfile,
+    /// How the app is presented in the host shell. Defaults to `Front`.
+    #[serde(default)]
+    pub view_mode: MiniAppViewMode,
+    /// User-declared lifecycle scripts (install / uninstall / start / stop).
+    #[serde(default, skip_serializing_if = "MiniAppLifecycleScripts::is_empty")]
+    pub lifecycle: MiniAppLifecycleScripts,
     /// Optional per-locale overrides for `name` / `description` / `tags`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub i18n: Option<MiniAppI18n>,
@@ -299,6 +441,8 @@ impl From<&MiniApp> for MiniAppMeta {
             ai_context: app.ai_context.clone(),
             runtime: app.runtime.clone(),
             runtime_profile: app.runtime_profile,
+            view_mode: app.view_mode,
+            lifecycle: app.lifecycle.clone(),
             i18n: app.i18n.clone(),
         }
     }

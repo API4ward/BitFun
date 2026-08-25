@@ -192,6 +192,8 @@ impl<'a> MiniAppRuntimeFacade<'a> {
                 source: Some(source),
                 permissions: Some(permissions),
                 ai_context: None,
+                view_mode: None,
+                lifecycle: None,
             },
             compiled_html,
             now,
@@ -866,6 +868,8 @@ mod tests {
             ai_context: None,
             runtime: MiniAppRuntimeState::default(),
             runtime_profile: Default::default(),
+            view_mode: Default::default(),
+            lifecycle: Default::default(),
             i18n: None,
         }
     }
