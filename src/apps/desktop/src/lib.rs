@@ -1887,6 +1887,8 @@ pub async fn run() {
             api::miniapp_api::miniapp_set_view_mode,
             api::miniapp_api::miniapp_set_lifecycle_scripts,
             api::miniapp_api::miniapp_run_lifecycle_event,
+            api::miniapp_api::miniapp_set_scripts,
+            api::miniapp_api::miniapp_run_script,
             appearance::open_miniapp_full_window,
             api::canvas_api::load_canvas_artifact,
             api::canvas_api::load_canvas_state,

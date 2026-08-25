@@ -16,7 +16,9 @@ use bitfun_core::miniapp::lifecycle::{
     workspace_root_from_input,
 };
 use bitfun_core::miniapp::rate_limit::{MiniAppRateLimitState, MiniAppRateLimitSubject};
-use bitfun_core::miniapp::types::{MiniAppLifecycleEvent, MiniAppLifecycleScripts, MiniAppViewMode};
+use bitfun_core::miniapp::types::{
+    MiniAppLifecycleEvent, MiniAppLifecycleScripts, MiniAppScriptDef, MiniAppViewMode,
+};
 use bitfun_core::miniapp::{
     dispatch_host, is_host_primitive, InstallResult as CoreInstallResult, MiniApp,
     MiniAppAiContext, MiniAppCustomizationMetadata, MiniAppDraft, MiniAppMeta,
@@ -950,6 +952,90 @@ pub async fn miniapp_run_lifecycle_event(
             exit_code: None,
             error: None,
         }),
+    }
+}
+
+/// Replace a MiniApp's named scripts (`scripts` in the manifest).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetScriptsRequest {
+    pub app_id: String,
+    #[serde(default)]
+    pub scripts: Vec<MiniAppScriptDef>,
+}
+
+#[tauri::command]
+pub async fn miniapp_set_scripts(
+    state: State<'_, AppState>,
+    request: SetScriptsRequest,
+) -> Result<MiniApp, String> {
+    let app = state
+        .miniapp_manager
+        .set_scripts(&request.app_id, request.scripts)
+        .await
+        .map_err(|e| e.to_string())?;
+    emit_miniapp_event(
+        "miniapp-updated",
+        miniapp_runtime_event_payload(&app, "scripts"),
+    )
+    .await;
+    Ok(app)
+}
+
+/// Run a named script the app declared, forwarding optional args.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunScriptRequest {
+    pub app_id: String,
+    pub script: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScriptRunResult {
+    pub ran: bool,
+    pub succeeded: bool,
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn miniapp_run_script(
+    state: State<'_, AppState>,
+    request: RunScriptRequest,
+) -> Result<ScriptRunResult, String> {
+    let report = state
+        .miniapp_manager
+        .run_named_script(&request.app_id, &request.script, request.args)
+        .await
+        .map_err(|e| e.to_string())?;
+    match report {
+        Some(report) => {
+            if !report.succeeded {
+                log::warn!(
+                    "MiniApp script '{}' failed for {}: exit={:?} error={:?} stderr={}",
+                    report.name,
+                    request.app_id,
+                    report.exit_code,
+                    report.error,
+                    report.stderr.trim()
+                );
+            }
+            emit_miniapp_event("miniapp-script", report.to_event_payload(&request.app_id)).await;
+            Ok(ScriptRunResult {
+                ran: true,
+                succeeded: report.succeeded,
+                exit_code: report.exit_code,
+                stdout: report.stdout,
+                stderr: report.stderr,
+                error: report.error,
+            })
+        }
+        None => Err(format!("MiniApp has no script named '{}'", request.script)),
     }
 }
 
