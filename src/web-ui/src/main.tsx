@@ -4,6 +4,7 @@ import AgentCompanionDesktopPet from "./app/components/AgentCompanionDesktopPet/
 import MiniAppScene from "./app/scenes/miniapps/MiniAppScene";
 import AppErrorBoundary from "./app/components/AppErrorBoundary";
 import { STARTUP_OVERLAY_HIDDEN_EVENT } from "./app/startup/startupSignals";
+import { hideStartupOverlay } from "./app/startup/startupOverlay";
 import { WorkspaceProvider } from "./infrastructure/contexts/WorkspaceProvider";
 import { PeerDeviceProvider } from "./infrastructure/peer-device/PeerDeviceContext";
 import { PeerHostInvokeBridge } from "./infrastructure/peer-device/PeerHostInvokeBridge";
@@ -361,6 +362,9 @@ async function startApplication(): Promise<void> {
         </I18nProvider>
       </AppErrorBoundary>
     );
+    // This standalone window does not run the full post-render startup pipeline,
+    // so dismiss the static startup overlay explicitly or it would cover the app.
+    void hideStartupOverlay();
     logElapsed(log, 'Startup step completed', renderStartedAt, {
       data: {
         step: 'scheduleMiniAppWindowRender',
