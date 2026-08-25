@@ -109,6 +109,24 @@ const MiniAppGalleryView: React.FC = () => {
   const handleOpenApp = useCallback(
     (appId: string) => {
       setSelectedApp(null);
+      const app = apps.find((candidate) => candidate.id === appId);
+      const viewMode = app?.view_mode ?? 'front';
+
+      // Fire the `start` lifecycle hook on activation (host runs it if declared).
+      void miniAppAPI
+        .runLifecycleEvent(appId, 'start')
+        .catch((error) => log.warn('MiniApp start lifecycle failed', error));
+
+      if (viewMode === 'full') {
+        // Full mode opens an independent OS window instead of a scene tab.
+        void miniAppAPI
+          .openFullWindow(appId, app?.name)
+          .catch((error) => log.error('Open MiniApp window failed', error));
+        return;
+      }
+
+      // Background and front both use a scene tab in the main shell for now;
+      // background additionally keeps its worker resident via the nav entry.
       const tabId: SceneTabId = `miniapp:${appId}`;
       if (openTabIds.has(tabId)) {
         activateScene(tabId);
@@ -116,7 +134,7 @@ const MiniAppGalleryView: React.FC = () => {
         openScene(tabId);
       }
     },
-    [openTabIds, activateScene, openScene]
+    [apps, openTabIds, activateScene, openScene]
   );
 
   const handleStopRunning = useCallback(
