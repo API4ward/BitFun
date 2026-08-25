@@ -322,6 +322,9 @@ The specification is delivered incrementally. Current state:
 - [x] Built-in seed writes `BuiltinMiniAppBundle.extra_files` at the app root
       (hooks and named scripts). Existing builtins keep an empty list so their
       content hash is unchanged.
+- [x] Built-in NetBreaker2 (`builtin-netbreaker2`) ships a Clash/mihomo TUN
+      client: named scripts under `scripts/`, elevation wrappers, and lifecycle
+      hooks. It is a second builtin and does not replace NetBreaker.
 
 ### Design boundary: scripts and the market
 

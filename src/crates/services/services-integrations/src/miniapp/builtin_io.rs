@@ -265,4 +265,29 @@ mod tests {
 
         let _ = tokio::fs::remove_dir_all(dir).await;
     }
+
+    #[tokio::test]
+    async fn prepare_builtin_seed_bundle_files_writes_netbreaker2_scripts() {
+        let dir = scratch_dir("netbreaker2");
+        let app = BUILTIN_APPS
+            .iter()
+            .find(|app| app.id == "builtin-netbreaker2")
+            .expect("NetBreaker2 should be registered");
+
+        prepare_builtin_seed_bundle_files(&dir, app, 1234)
+            .await
+            .unwrap();
+
+        assert!(dir.join("scripts").join("kernel-runner.js").exists());
+        assert!(dir.join("scripts").join("elevate-launch.sh").exists());
+        assert!(dir.join("scripts").join("start.js").exists());
+        assert!(dir.join("hooks").join("install.js").exists());
+        let meta = tokio::fs::read_to_string(dir.join("meta.json"))
+            .await
+            .unwrap();
+        assert!(meta.contains("builtin-netbreaker2"));
+        assert!(meta.contains("scripts/start.js"));
+
+        let _ = tokio::fs::remove_dir_all(dir).await;
+    }
 }

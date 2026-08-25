@@ -35,6 +35,7 @@ ports；具体 runtime 行为不属于本 crate。
 ```bash
 cargo test -p bitfun-product-domains --no-default-features
 cargo test -p bitfun-product-domains --features product-full
+pnpm run test:netbreaker2
 node scripts/check-core-boundaries.mjs
 cargo check -p bitfun-core --features product-full
 ```

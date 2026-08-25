@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en-US" data-bf-appearance-mode="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="title">NetBreaker2</title>
+</head>
+<body>
+  <div id="app" class="nb">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand__icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M3 12h18"/>
+            <path d="M12 3a14 14 0 010 18"/>
+            <path d="M12 3a14 14 0 000 18"/>
+          </svg>
+        </div>
+        <div class="brand__text">
+          <h1 class="brand__title" data-i18n="title">NetBreaker2</h1>
+          <p class="brand__subtitle" data-i18n="subtitle">Local Clash / mihomo kernel · TUN virtual NIC</p>
+        </div>
+      </div>
+      <span class="status status--idle" id="status-pill" data-i18n="statusIdle">Idle</span>
+    </header>
+
+    <div class="banner" id="kernel-banner" hidden>
+      <strong data-i18n="kernelMissingTitle">Clash kernel missing</strong>
+      <p id="kernel-banner-text" data-i18n="kernelMissingBody">Place mihomo, clash, or clash-meta in this app scripts/ directory, or use Fetch kernel.</p>
+    </div>
+
+    <div class="banner banner--warn" id="elevate-banner" hidden>
+      <strong data-i18n="elevateTitle">Administrator prompt required</strong>
+      <p data-i18n="elevateBody">Starting TUN shows a pkexec, macOS admin, or Windows UAC prompt. Elevation is never silent. Deny it and the TUN will not start.</p>
+    </div>
+
+    <div class="banner banner--warn" id="remote-banner" hidden>
+      <strong data-i18n="remoteTitle">Local TUN host required</strong>
+      <p id="remote-banner-text" data-i18n="remoteBody">NetBreaker2 must create a TUN device on this BitFun host. Remote, peer, detached, or headless surfaces that cannot elevate should use a local host.</p>
+    </div>
+
+    <main class="layout">
+      <section class="card controls">
+        <div class="facts" id="facts">
+          <div class="fact">
+            <span class="fact__label" data-i18n="kernelLabel">Kernel</span>
+            <strong id="fact-kernel">—</strong>
+          </div>
+          <div class="fact">
+            <span class="fact__label" data-i18n="listenLabel">Listen</span>
+            <strong id="listen-port">7890</strong>
+          </div>
+          <div class="fact">
+            <span class="fact__label" data-i18n="tunLabel">TUN name</span>
+            <strong id="fact-tun">—</strong>
+          </div>
+          <div class="fact">
+            <span class="fact__label" data-i18n="elevatedLabel">Elevated</span>
+            <strong id="fact-elevated">—</strong>
+          </div>
+        </div>
+
+        <div class="port-row">
+          <label class="field">
+            <span data-i18n="listenPort">Mixed listen port</span>
+            <input id="port-input" type="number" min="1" max="65535" step="1" value="7890" inputmode="numeric" />
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="btn-start" class="btn btn--primary" data-i18n="start">Start TUN</button>
+          <button type="button" id="btn-stop" class="btn" data-i18n="stop">Stop TUN</button>
+          <button type="button" id="btn-ping" class="btn" data-i18n="ping">Ping test</button>
+          <button type="button" id="btn-fetch" class="btn btn--ghost" data-i18n="fetchKernel">Fetch kernel</button>
+        </div>
+        <p class="hint" data-i18n="hint">Starts a Clash TUN virtual NIC with a DIRECT outbound. This is a local proxy client, not a remote attack tool.</p>
+      </section>
+
+      <section class="card logs-card">
+        <div class="card__title">
+          <span data-i18n="logsTitle">Logs</span>
+          <span class="hint" data-i18n="logsHint">Last 10 entries</span>
+        </div>
+        <ol id="logs" class="logs">
+          <li class="logs__empty" data-i18n="logsEmpty">No log entries yet.</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
