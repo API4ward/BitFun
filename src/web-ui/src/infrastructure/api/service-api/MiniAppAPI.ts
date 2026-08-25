@@ -195,6 +195,23 @@ export interface MiniAppLifecycleScripts {
   stop?: string;
 }
 
+/** A named script the app ships to extend its capabilities. */
+export interface MiniAppScriptDef {
+  name: string;
+  path: string;
+  description?: string;
+}
+
+/** Result of running a named script via `runScript`. */
+export interface ScriptRunResult {
+  ran: boolean;
+  succeeded: boolean;
+  exitCode?: number | null;
+  stdout: string;
+  stderr: string;
+  error?: string | null;
+}
+
 /** Result of triggering a lifecycle event via `runLifecycleEvent`. */
 export interface LifecycleRunResult {
   /** Whether a script was declared and therefore run. */
@@ -221,6 +238,8 @@ export interface MiniAppMeta {
   view_mode?: MiniAppViewMode;
   /** User-declared lifecycle scripts (install/uninstall/start/stop). */
   lifecycle?: MiniAppLifecycleScripts;
+  /** Named scripts the app ships to extend its capabilities. */
+  scripts?: MiniAppScriptDef[];
   /** Optional per-locale overrides for `name` / `description` / `tags`. */
   i18n?: MiniAppI18n;
 }
@@ -414,6 +433,24 @@ export class MiniAppAPI {
       await api.invoke('open_miniapp_full_window', { appId, title });
     } catch (error) {
       throw createTauriCommandError('open_miniapp_full_window', error, { appId });
+    }
+  }
+
+  /** Replace the app's named scripts (scripts that extend its capabilities). */
+  async setScripts(appId: string, scripts: MiniAppScriptDef[]): Promise<MiniApp> {
+    try {
+      return await api.invoke('miniapp_set_scripts', { request: { appId, scripts } });
+    } catch (error) {
+      throw createTauriCommandError('miniapp_set_scripts', error, { appId });
+    }
+  }
+
+  /** Run a named script the app declared, forwarding optional args. */
+  async runScript(appId: string, script: string, args: string[] = []): Promise<ScriptRunResult> {
+    try {
+      return await api.invoke('miniapp_run_script', { request: { appId, script, args } });
+    } catch (error) {
+      throw createTauriCommandError('miniapp_run_script', error, { appId, script });
     }
   }
 

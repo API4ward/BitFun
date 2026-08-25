@@ -174,6 +174,30 @@ const MiniAppGalleryView: React.FC = () => {
     [upsertApp]
   );
 
+  const handleRunScript = useCallback(
+    async (appId: string, scriptName: string) => {
+      try {
+        const result = await miniAppAPI.runScript(appId, scriptName);
+        if (result.succeeded) {
+          notification.success(t('detail.scripts.ran', { name: scriptName }));
+        } else {
+          notification.error(
+            t('detail.scripts.failed', {
+              name: scriptName,
+              error: result.error ?? (result.stderr || '').trim(),
+            })
+          );
+        }
+      } catch (error) {
+        log.error('Run script failed', error);
+        notification.error(
+          t('detail.scripts.failed', { name: scriptName, error: String(error) })
+        );
+      }
+    },
+    [notification, t]
+  );
+
   const handleDeleteRequest = (appId: string) => {
     setPendingDeleteId(appId);
   };
@@ -516,6 +540,40 @@ const MiniAppGalleryView: React.FC = () => {
                   {t('detail.viewMode.hint')}
                 </p>
               </div>
+              {selectedApp.scripts && selectedApp.scripts.length > 0 ? (
+                <div
+                  data-bf-component="miniapp-gallery-view"
+                  data-bf-part="detailScripts"
+                  className="miniapp-gallery__detail-scripts"
+                >
+                  <span className="miniapp-gallery__detail-scripts-label">
+                    {t('detail.scripts.label')}
+                  </span>
+                  <div className="miniapp-gallery__detail-scripts-list">
+                    {selectedApp.scripts.map((script) => (
+                      <div
+                        key={script.name}
+                        className="miniapp-gallery__detail-script"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+                      >
+                        <Button
+                          variant="secondary"
+                          size="small"
+                          onClick={() => void handleRunScript(selectedApp.id, script.name)}
+                        >
+                          <Play size={12} />
+                          {script.name}
+                        </Button>
+                        {script.description ? (
+                          <span className="miniapp-gallery__detail-script-desc">
+                            {script.description}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {detailTags.length ? (
                 <div data-bf-component="miniapp-gallery-view" data-bf-part="detailTags" className="miniapp-gallery__detail-tags">
                   {detailTags.map((tag) => (
