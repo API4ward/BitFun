@@ -43,14 +43,16 @@ impl LifecycleScriptOutcome {
 /// Run `script_path` with `runtime`, using `app_dir` as the working directory.
 ///
 /// The script path must already be validated as contained within the app
-/// directory by the caller. Returns an error only when the process cannot be
-/// spawned/awaited or exceeds `timeout_ms`; a script that runs but exits
-/// non-zero returns `Ok` with `succeeded == false` so the caller can decide how
-/// to react per event.
+/// directory by the caller. `extra_env` is injected into the child environment
+/// (app id, app dir, event, resolved permission policy) so a trusted script has
+/// its context. Returns an error only when the process cannot be spawned/awaited
+/// or exceeds `timeout_ms`; a script that runs but exits non-zero returns `Ok`
+/// with `succeeded == false` so the caller can decide how to react per event.
 pub async fn run_lifecycle_script(
     runtime: &DetectedRuntime,
     script_path: &Path,
     app_dir: &Path,
+    extra_env: &[(String, String)],
     timeout_ms: u64,
 ) -> Result<LifecycleScriptOutcome, String> {
     let exe = runtime.path.to_string_lossy();
@@ -64,6 +66,9 @@ pub async fn run_lifecycle_script(
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .kill_on_drop(true);
+    for (key, value) in extra_env {
+        command.env(key, value);
+    }
 
     let effective_timeout = if timeout_ms == 0 {
         DEFAULT_LIFECYCLE_TIMEOUT_MS
@@ -131,7 +136,8 @@ mod tests {
         )
         .unwrap();
 
-        let outcome = run_lifecycle_script(&runtime, &script, &dir, 10_000)
+        let env = [("BITFUN_MINIAPP_EVENT".to_string(), "install".to_string())];
+        let outcome = run_lifecycle_script(&runtime, &script, &dir, &env, 10_000)
             .await
             .expect("script should run");
 
