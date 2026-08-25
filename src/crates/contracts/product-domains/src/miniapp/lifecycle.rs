@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 
 use crate::miniapp::storage::MiniAppStorageLayout;
 use crate::miniapp::types::{
-    MiniApp, MiniAppAiContext, MiniAppLifecycleEvent, MiniAppLifecycleScripts, MiniAppMeta,
-    MiniAppPermissions, MiniAppRuntimeState, MiniAppSource, MiniAppViewMode,
+    find_script_path, MiniApp, MiniAppAiContext, MiniAppLifecycleEvent, MiniAppLifecycleScripts,
+    MiniAppMeta, MiniAppPermissions, MiniAppRuntimeState, MiniAppScriptDef, MiniAppSource,
+    MiniAppViewMode,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -34,6 +35,7 @@ pub struct MiniAppUpdatePatch {
     pub ai_context: Option<MiniAppAiContext>,
     pub view_mode: Option<MiniAppViewMode>,
     pub lifecycle: Option<MiniAppLifecycleScripts>,
+    pub scripts: Option<Vec<MiniAppScriptDef>>,
 }
 
 impl MiniAppUpdatePatch {
@@ -81,6 +83,7 @@ pub fn miniapp_content_hash(app: &MiniApp) -> String {
         "runtimeProfile": app.runtime_profile,
         "viewMode": app.view_mode,
         "lifecycle": &app.lifecycle,
+        "scripts": &app.scripts,
         "i18n": &app.i18n,
     }));
     let encoded = serde_json::to_vec(&payload)
@@ -152,6 +155,7 @@ pub fn build_created_app(
         runtime_profile: Default::default(),
         view_mode: MiniAppViewMode::default(),
         lifecycle: MiniAppLifecycleScripts::default(),
+        scripts: Vec::new(),
         i18n: None,
     };
     refresh_content_hash(&mut app);
@@ -197,6 +201,9 @@ pub fn apply_update_patch(
     }
     if let Some(lifecycle) = patch.lifecycle {
         app.lifecycle = lifecycle;
+    }
+    if let Some(scripts) = patch.scripts {
+        app.scripts = scripts;
     }
 
     app.version += 1;
@@ -292,6 +299,7 @@ pub fn apply_draft_to_active(
     app.ai_context = draft.ai_context;
     app.view_mode = draft.view_mode;
     app.lifecycle = draft.lifecycle;
+    app.scripts = draft.scripts;
     app.i18n = draft.i18n;
     app.version = current.version + 1;
     app.updated_at = now;
@@ -505,6 +513,51 @@ pub fn plan_lifecycle_script(
     })
 }
 
+/// A resolved named-script invocation the host runtime should execute.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MiniAppScriptPlan {
+    pub name: String,
+    /// Absolute path to the script file, guaranteed to be inside the app dir.
+    pub script_path: PathBuf,
+    /// The manifest-relative path, retained for logging/telemetry.
+    pub relative_path: String,
+}
+
+/// Resolve a named script (declared in `meta.json` `scripts`) to an absolute
+/// path within the app directory.
+///
+/// Returns `None` when no script matches `name` or when the declared path would
+/// escape the app directory. Pure decision: the services layer confirms the
+/// file exists and executes it.
+pub fn plan_named_script(
+    layout: &MiniAppStorageLayout,
+    scripts: &[MiniAppScriptDef],
+    name: &str,
+) -> Option<MiniAppScriptPlan> {
+    let relative = find_script_path(scripts, name)?;
+    let script_path = layout.resolve_contained_relative(relative)?;
+    Some(MiniAppScriptPlan {
+        name: name.trim().to_string(),
+        script_path,
+        relative_path: relative.to_string(),
+    })
+}
+
+/// Frontend/telemetry payload emitted when a named script runs.
+pub fn miniapp_script_event_payload(
+    app_id: &str,
+    name: &str,
+    relative_path: &str,
+    succeeded: bool,
+) -> Value {
+    json!({
+        "id": app_id,
+        "script": name,
+        "path": relative_path,
+        "succeeded": succeeded,
+    })
+}
+
 /// Frontend/telemetry payload emitted when a lifecycle script runs.
 pub fn miniapp_lifecycle_event_payload(
     app_id: &str,
@@ -542,6 +595,7 @@ mod tests {
             runtime_profile: Default::default(),
             view_mode: Default::default(),
             lifecycle: Default::default(),
+            scripts: Default::default(),
             i18n: None,
         };
 
@@ -740,5 +794,72 @@ mod tests {
             Some("hooks/start.js")
         );
         assert_eq!(updated.version, previous.version + 1);
+    }
+
+    #[test]
+    fn named_scripts_lookup_and_resolution_guard_traversal() {
+        let scripts = vec![
+            MiniAppScriptDef {
+                name: "build".to_string(),
+                path: "scripts/build.js".to_string(),
+                description: Some("Build the project".to_string()),
+            },
+            MiniAppScriptDef {
+                name: "escape".to_string(),
+                path: "../evil.js".to_string(),
+                description: None,
+            },
+            // Blank name/path entries are ignored.
+            MiniAppScriptDef {
+                name: "  ".to_string(),
+                path: "scripts/x.js".to_string(),
+                description: None,
+            },
+        ];
+
+        assert_eq!(find_script_path(&scripts, "build"), Some("scripts/build.js"));
+        assert_eq!(find_script_path(&scripts, "missing"), None);
+        assert_eq!(find_script_path(&scripts, "  "), None);
+
+        let layout = MiniAppStorageLayout::new("/root/miniapps", "app-1");
+        let plan = plan_named_script(&layout, &scripts, "build").expect("build resolves");
+        assert_eq!(plan.name, "build");
+        assert_eq!(plan.relative_path, "scripts/build.js");
+        assert_eq!(
+            plan.script_path,
+            layout.app_dir().join("scripts").join("build.js")
+        );
+        // Traversal is rejected.
+        assert_eq!(plan_named_script(&layout, &scripts, "escape"), None);
+        assert_eq!(plan_named_script(&layout, &scripts, "missing"), None);
+    }
+
+    #[test]
+    fn content_hash_and_update_patch_track_named_scripts() {
+        let base = sample_app();
+        let base_hash = miniapp_content_hash(&base);
+
+        let mut with_scripts = base.clone();
+        with_scripts.scripts.push(MiniAppScriptDef {
+            name: "sync".to_string(),
+            path: "scripts/sync.js".to_string(),
+            description: None,
+        });
+        assert_ne!(miniapp_content_hash(&with_scripts), base_hash);
+
+        let patch = MiniAppUpdatePatch {
+            scripts: Some(vec![MiniAppScriptDef {
+                name: "build".to_string(),
+                path: "scripts/build.js".to_string(),
+                description: None,
+            }]),
+            ..Default::default()
+        };
+        let updated = apply_update_patch(&base, patch, "<html></html>".to_string(), 789);
+        assert_eq!(updated.scripts.len(), 1);
+        assert_eq!(
+            find_script_path(&updated.scripts, "build"),
+            Some("scripts/build.js")
+        );
     }
 }

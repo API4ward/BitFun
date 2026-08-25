@@ -408,6 +408,7 @@ impl MiniAppStorage {
             runtime_profile: meta.runtime_profile,
             view_mode: meta.view_mode,
             lifecycle: meta.lifecycle,
+            scripts: meta.scripts,
             i18n: meta.i18n,
         })
     }
@@ -794,6 +795,7 @@ impl MiniAppStorage {
             runtime_profile: meta.runtime_profile,
             view_mode: meta.view_mode,
             lifecycle: meta.lifecycle,
+            scripts: meta.scripts,
             i18n: meta.i18n,
         })
     }
@@ -1908,6 +1910,7 @@ mod tests {
             runtime_profile: Default::default(),
             view_mode: Default::default(),
             lifecycle: Default::default(),
+            scripts: Default::default(),
             i18n: None,
         }
     }

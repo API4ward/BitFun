@@ -271,11 +271,12 @@ impl MiniAppManager {
             source,
             permissions,
             ai_context,
-            // View mode and lifecycle scripts are managed through dedicated
-            // paths (import/meta + view-mode command); the generic update keeps
-            // them unchanged.
+            // View mode, lifecycle hooks, and named scripts are managed through
+            // dedicated paths (import/meta + view-mode / scripts commands); the
+            // generic update keeps them unchanged.
             view_mode: None,
             lifecycle: None,
+            scripts: None,
         };
         let now = Utc::now().timestamp_millis();
         let compiled_html = if self.uses_market_strict_runtime(app_id).await {
@@ -1228,6 +1229,7 @@ mod tests {
             runtime_profile: Default::default(),
             view_mode: Default::default(),
             lifecycle: Default::default(),
+            scripts: Default::default(),
             i18n: None,
         };
         tokio::fs::write(
