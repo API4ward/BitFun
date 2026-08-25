@@ -25,7 +25,8 @@ pub use exporter::{ExportCheckResult, ExportOptions, ExportResult, ExportTarget,
 pub use host_dispatch::{dispatch_host, is_host_primitive};
 pub use js_worker_pool::{InstallResult, JsWorkerPool};
 pub use manager::{
-    initialize_global_miniapp_manager, try_get_global_miniapp_manager, MiniAppManager,
+    initialize_global_miniapp_manager, try_get_global_miniapp_manager, MiniAppLifecycleReport,
+    MiniAppManager,
 };
 pub use permission_policy::resolve_policy;
 pub use runtime_detect::{DetectedRuntime, RuntimeKind};

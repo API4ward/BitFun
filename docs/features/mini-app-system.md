@@ -170,12 +170,16 @@ layer never touches the filesystem.
   identical to the worker, so a lifecycle script cannot exceed what the app is
   already granted.
 - Each run emits a `miniapp-lifecycle` event
-  (`miniapp_lifecycle_event_payload`: `{ id, event, script, succeeded }`) for
-  the UI / telemetry.
-- Failures are surfaced, not silently swallowed. `install` failure aborts the
-  install and rolls back atomically; `uninstall` failure is reported but does
-  not block directory removal (an app must always be removable). `start` /
-  `stop` failures are reported and do not wedge the worker lifecycle.
+  (`{ id, event, script, succeeded, exitCode, error }`) for the UI / telemetry,
+  and the desktop command returns the outcome to the caller.
+- Lifecycle scripts are **best-effort**: a failing script (non-zero exit,
+  missing file, traversal attempt, or no runtime) is surfaced via the event,
+  the command result, and logs, but it does **not** abort or roll back the
+  surrounding flow. `install` runs after the app is committed, `uninstall` runs
+  before removal (an app must always be removable), and `stop` runs as part of
+  worker teardown. This mirrors how npm lifecycle scripts behave and keeps the
+  app store consistent even when a hook misbehaves; authors that need hard
+  guarantees should assert inside the script and react to the reported failure.
 
 ---
 
@@ -243,13 +247,19 @@ The specification is delivered incrementally. Current state:
       `MiniAppLifecycleScripts`, `view_mode` / `lifecycle` fields, `HOOKS_DIR`,
       safe path resolver, `plan_lifecycle_script`, and event payload — with unit
       and contract tests in `bitfun-product-domains`.
-- [ ] Services: execute lifecycle scripts on install/uninstall/start/stop via the
-      process facade, with permission policy and event emission.
-- [ ] Assembly: manager dispatch of lifecycle events and view-mode updates wired
-      to `PathManager`.
-- [ ] Desktop: Tauri commands for setting view mode and for independent (`full`)
-      windows.
-- [ ] Web UI: render `background` panel, `front` tab, and `full` window; expose
-      lifecycle status.
+- [x] Services: `run_lifecycle_script` runs a resolved script (Bun/Node) via the
+      non-interactive process facade, injecting app/event/policy env and
+      capturing stdout/stderr/exit code, in `bitfun-services-integrations`.
+- [x] Assembly: `MiniAppManager::run_lifecycle_event` (traversal-guarded resolve
+      + runtime detect + run + report), `set_view_mode`, and
+      `set_lifecycle_scripts`, wired to `PathManager` and the permission policy,
+      with tests.
+- [x] Desktop: Tauri commands `miniapp_set_view_mode`,
+      `miniapp_set_lifecycle_scripts`, `miniapp_run_lifecycle_event`, and
+      `open_miniapp_full_window`; automatic `install` (create/import),
+      `uninstall` (delete), and `stop` (worker stop) dispatch with
+      `miniapp-lifecycle` events.
+- [ ] Web UI: render `background` panel, `front` tab, and `full` window; call the
+      view-mode/lifecycle commands and expose lifecycle status.
 
 Each subsequent change keeps this table current.
