@@ -2310,6 +2310,7 @@ fn sample_miniapp_for_lifecycle(source: MiniAppSource) -> MiniApp {
         runtime_profile: Default::default(),
         view_mode: Default::default(),
         lifecycle: Default::default(),
+        scripts: Default::default(),
         i18n: None,
     }
 }

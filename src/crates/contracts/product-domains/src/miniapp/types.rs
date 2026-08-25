@@ -349,6 +349,46 @@ impl MiniAppLifecycleScripts {
     }
 }
 
+/// A named, user-declared script that extends a MiniApp's capabilities.
+///
+/// Unlike the fixed lifecycle hooks, named scripts are arbitrary commands the
+/// app author ships (recommended under `scripts/`), invokable on demand by the
+/// user, the app UI (via the host bridge), or the agent. `path` is resolved
+/// against the app root with the same traversal guard as lifecycle scripts and
+/// run with the detected JS runtime (Bun/Node).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MiniAppScriptDef {
+    /// Stable identifier used to invoke the script (e.g. `build`, `sync`).
+    pub name: String,
+    /// Path to the script file, relative to the app root.
+    pub path: String,
+    /// Optional human-facing description shown in the UI.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+impl MiniAppScriptDef {
+    /// The script path if both `name` and `path` are non-empty after trimming.
+    pub fn resolved_path(&self) -> Option<&str> {
+        let path = self.path.trim();
+        if self.name.trim().is_empty() || path.is_empty() {
+            None
+        } else {
+            Some(path)
+        }
+    }
+}
+
+/// Look up a declared script by name (trimmed, exact match) and return its
+/// relative path.
+pub fn find_script_path<'a>(scripts: &'a [MiniAppScriptDef], name: &str) -> Option<&'a str> {
+    let target = name.trim();
+    scripts
+        .iter()
+        .find(|script| script.name.trim() == target)
+        .and_then(MiniAppScriptDef::resolved_path)
+}
+
 /// Full MiniApp entity (in-memory / API).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MiniApp {
@@ -388,6 +428,10 @@ pub struct MiniApp {
     #[serde(default, skip_serializing_if = "MiniAppLifecycleScripts::is_empty")]
     pub lifecycle: MiniAppLifecycleScripts,
 
+    /// Named scripts the app ships to extend its capabilities.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scripts: Vec<MiniAppScriptDef>,
+
     /// Optional per-locale overrides for `name` / `description` / `tags`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub i18n: Option<MiniAppI18n>,
@@ -420,6 +464,9 @@ pub struct MiniAppMeta {
     /// User-declared lifecycle scripts (install / uninstall / start / stop).
     #[serde(default, skip_serializing_if = "MiniAppLifecycleScripts::is_empty")]
     pub lifecycle: MiniAppLifecycleScripts,
+    /// Named scripts the app ships to extend its capabilities.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scripts: Vec<MiniAppScriptDef>,
     /// Optional per-locale overrides for `name` / `description` / `tags`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub i18n: Option<MiniAppI18n>,
@@ -443,6 +490,7 @@ impl From<&MiniApp> for MiniAppMeta {
             runtime_profile: app.runtime_profile,
             view_mode: app.view_mode,
             lifecycle: app.lifecycle.clone(),
+            scripts: app.scripts.clone(),
             i18n: app.i18n.clone(),
         }
     }

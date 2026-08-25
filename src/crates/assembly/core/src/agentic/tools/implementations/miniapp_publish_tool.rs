@@ -568,6 +568,7 @@ mod tests {
             runtime_profile: Default::default(),
             view_mode: Default::default(),
             lifecycle: Default::default(),
+            scripts: Default::default(),
             i18n: locale_name.map(|value| MiniAppI18n {
                 locales: HashMap::from([(
                     "en-US".to_string(),
