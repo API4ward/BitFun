@@ -7,7 +7,7 @@ use bitfun_product_domains::miniapp::ports::{
 use bitfun_product_domains::miniapp::storage::{
     build_package_json, parse_npm_dependencies, MiniAppImportBundleWriteRequest,
     MiniAppImportLayout, MiniAppStorageLayout, COMPILED_HTML, CUSTOMIZATION_JSON,
-    DRAFTS_CLEANUP_MARKER, DRAFTS_CLEANUP_PREFIX, DRAFTS_DIR, DRAFT_JSON, ESM_DEPS_JSON,
+    DRAFTS_CLEANUP_MARKER, DRAFTS_CLEANUP_PREFIX, DRAFTS_DIR, DRAFT_JSON, ESM_DEPS_JSON, HOOKS_DIR,
     INDEX_HTML, META_JSON, PACKAGE_JSON, REQUIRED_SOURCE_FILES, STORAGE_JSON, STYLE_CSS, UI_JS,
     VERSIONS_DIR, WORKER_JS,
 };
@@ -277,9 +277,52 @@ impl MiniAppStorage {
                 .map_err(|_| MiniAppStorageError::io("Failed to write storage.json"))?;
         }
 
+        // Carry the optional lifecycle-hooks directory so declared
+        // install/uninstall/start/stop scripts exist after import.
+        let hooks_src = request.source_path.join(HOOKS_DIR);
+        if hooks_src.is_dir() {
+            Self::copy_dir_recursive(&hooks_src, &dest_dir.join(HOOKS_DIR)).await?;
+        }
+
         tokio::fs::write(dest_dir.join(COMPILED_HTML), request.compiled_html)
             .await
             .map_err(|_| MiniAppStorageError::io("Failed to write placeholder compiled.html"))?;
+        Ok(())
+    }
+
+    /// Recursively copy a directory tree (used to carry the `hooks/` directory on
+    /// import). Iterative to avoid boxing an async recursion.
+    async fn copy_dir_recursive(from: &Path, to: &Path) -> MiniAppStorageResult<()> {
+        let mut pending: Vec<(PathBuf, PathBuf)> = vec![(from.to_path_buf(), to.to_path_buf())];
+        while let Some((src, dst)) = pending.pop() {
+            tokio::fs::create_dir_all(&dst).await.map_err(|e| {
+                MiniAppStorageError::io(format!("Failed to create {}: {}", dst.display(), e))
+            })?;
+            let mut entries = tokio::fs::read_dir(&src).await.map_err(|e| {
+                MiniAppStorageError::io(format!("Failed to read {}: {}", src.display(), e))
+            })?;
+            while let Some(entry) = entries.next_entry().await.map_err(|e| {
+                MiniAppStorageError::io(format!("Failed to enumerate {}: {}", src.display(), e))
+            })? {
+                let file_type = entry.file_type().await.map_err(|e| {
+                    MiniAppStorageError::io(format!("Failed to stat entry: {}", e))
+                })?;
+                let child_src = entry.path();
+                let child_dst = dst.join(entry.file_name());
+                if file_type.is_dir() {
+                    pending.push((child_src, child_dst));
+                } else if file_type.is_file() {
+                    tokio::fs::copy(&child_src, &child_dst).await.map_err(|e| {
+                        MiniAppStorageError::io(format!(
+                            "Failed to copy {}: {}",
+                            child_src.display(),
+                            e
+                        ))
+                    })?;
+                }
+                // Symlinks and other node types are intentionally skipped.
+            }
+        }
         Ok(())
     }
 
@@ -1453,6 +1496,14 @@ mod tests {
         )
         .unwrap();
         fs::write(import_source_dir.join(WORKER_JS), "").unwrap();
+        // Lifecycle hooks directory must travel with the imported app.
+        let import_hooks_dir = import_root.join(HOOKS_DIR);
+        fs::create_dir_all(&import_hooks_dir).unwrap();
+        fs::write(
+            import_hooks_dir.join("install.js"),
+            "console.log('installed');",
+        )
+        .unwrap();
 
         let storage = MiniAppStorage::new(miniapps_dir.clone());
         let read_meta = storage.read_import_meta_json(&import_root).await.unwrap();
@@ -1488,6 +1539,11 @@ mod tests {
         assert_eq!(
             fs::read_to_string(layout.compiled_path()).unwrap(),
             "<html>placeholder</html>"
+        );
+        // The hooks directory and its scripts are carried into the app dir.
+        assert_eq!(
+            fs::read_to_string(layout.app_dir().join(HOOKS_DIR).join("install.js")).unwrap(),
+            "console.log('installed');"
         );
     }
 
