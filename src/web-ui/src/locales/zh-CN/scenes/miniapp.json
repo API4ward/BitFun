@@ -21,7 +21,26 @@
   "detail": {
     "stop": "停止",
     "delete": "删除",
-    "open": "打开"
+    "open": "打开",
+    "viewMode": {
+      "label": "打开方式",
+      "background": "后台面板",
+      "front": "标签页",
+      "full": "独立窗口",
+      "hint": "后台面板常驻侧栏面板，标签页在工作区中打开，独立窗口在单独的系统窗口中打开。"
+    },
+    "scripts": {
+      "label": "脚本",
+      "ran": "脚本“{{name}}”已执行完成",
+      "failed": "脚本“{{name}}”执行失败：{{error}}"
+    }
+  },
+  "dock": {
+    "title": "后台应用（{{count}}）",
+    "expand": "展开",
+    "collapse": "收起",
+    "close": "关闭",
+    "loading": "加载中…"
   },
   "confirmDelete": {
     "title": "删除 \"{{name}}\"？",

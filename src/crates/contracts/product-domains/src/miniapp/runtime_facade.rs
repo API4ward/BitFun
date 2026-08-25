@@ -194,6 +194,7 @@ impl<'a> MiniAppRuntimeFacade<'a> {
                 ai_context: None,
                 view_mode: None,
                 lifecycle: None,
+                scripts: None,
             },
             compiled_html,
             now,
@@ -870,6 +871,7 @@ mod tests {
             runtime_profile: Default::default(),
             view_mode: Default::default(),
             lifecycle: Default::default(),
+            scripts: Default::default(),
             i18n: None,
         }
     }

@@ -28,6 +28,7 @@ const LOCAL_ONLY_COMMANDS = new Set([
   'startup_window_control',
   'toggle_main_window_fullscreen',
   'set_main_window_transient_geometry',
+  'open_miniapp_full_window',
   'get_prevent_sleep_enabled',
   'set_prevent_sleep_enabled',
   'restart_app',

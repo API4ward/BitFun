@@ -21,7 +21,26 @@
   "detail": {
     "stop": "Stop",
     "delete": "Delete",
-    "open": "Open"
+    "open": "Open",
+    "viewMode": {
+      "label": "View mode",
+      "background": "Background",
+      "front": "Tab",
+      "full": "Window",
+      "hint": "Background keeps the app in a panel, Tab opens it in the workspace, Window opens a separate window."
+    },
+    "scripts": {
+      "label": "Scripts",
+      "ran": "Script \"{{name}}\" finished",
+      "failed": "Script \"{{name}}\" failed: {{error}}"
+    }
+  },
+  "dock": {
+    "title": "Background apps ({{count}})",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "close": "Close",
+    "loading": "Loading…"
   },
   "confirmDelete": {
     "title": "Delete \"{{name}}\"?",

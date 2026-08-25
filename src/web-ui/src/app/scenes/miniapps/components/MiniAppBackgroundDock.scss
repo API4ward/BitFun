@@ -1,0 +1,128 @@
+/**
+ * MiniAppBackgroundDock styles — resident panel for background view-mode apps.
+ */
+@use '../../../../component-library/styles/tokens' as *;
+
+.miniapp-bg-dock {
+  position: fixed;
+  right: $size-gap-4;
+  bottom: $size-gap-4;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-width: calc(100vw - #{$size-gap-6});
+  border: 1px solid var(--bf-appearance-token-border-subtle);
+  border-radius: $size-radius-lg;
+  background: var(--bf-appearance-token-color-bg-elevated);
+  box-shadow: var(--bf-appearance-token-shadow-base);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $size-gap-2;
+    padding: $size-gap-2 $size-gap-3;
+    border-bottom: 1px solid var(--bf-appearance-token-border-subtle);
+  }
+
+  &__title {
+    font-size: var(--bf-appearance-token-font-size-sm);
+    font-weight: $font-weight-semibold;
+    color: var(--bf-appearance-token-color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $size-gap-1;
+    padding: $size-gap-2 $size-gap-3;
+    border-bottom: 1px solid var(--bf-appearance-token-border-subtle);
+  }
+
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: $size-gap-1;
+    padding: 2px $size-gap-2;
+    border: 1px solid var(--bf-appearance-token-border-subtle);
+    border-radius: $size-radius-base;
+    background: var(--bf-appearance-token-color-bg-secondary);
+    color: var(--bf-appearance-token-color-text-muted);
+    font-size: var(--bf-appearance-token-font-size-xs);
+    cursor: pointer;
+
+    &--active {
+      background: var(--bf-appearance-token-color-bg-primary);
+      color: var(--bf-appearance-token-color-text-primary);
+    }
+  }
+
+  &__tab-label {
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__tab-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    height: 420px;
+    max-height: calc(100vh - #{$size-gap-8});
+  }
+
+  &__body-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $size-gap-2;
+    padding: $size-gap-1 $size-gap-3;
+  }
+
+  &__body-title {
+    font-size: var(--bf-appearance-token-font-size-xs);
+    color: var(--bf-appearance-token-color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__runner {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+  }
+
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $size-gap-2;
+    width: 100%;
+    color: var(--bf-appearance-token-color-text-muted);
+    font-size: var(--bf-appearance-token-font-size-sm);
+  }
+
+  &__spinner {
+    animation: miniapp-bg-dock-spin 1s linear infinite;
+  }
+}
+
+@keyframes miniapp-bg-dock-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

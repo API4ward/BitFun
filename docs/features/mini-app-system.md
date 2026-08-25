@@ -81,6 +81,8 @@ The canonical layout (owned by `MiniAppStorageLayout` in
 │   ├── uninstall.js
 │   ├── start.js
 │   └── stop.js
+├── scripts/               # (optional) named capability scripts — see §2b
+│   └── <name>.js
 └── versions/
     └── v{N}.json          # Full snapshots for rollback
 ```
@@ -98,7 +100,9 @@ atomically so a failed install never leaves a half-written app.
 
 The `hooks/` directory is a **recommended convention** (constant
 `HOOKS_DIR = "hooks"`), not a hard requirement: a lifecycle script path is any
-path relative to the app root (see §2.2).
+path relative to the app root (see §2.2). When an app is imported from a folder,
+the whole `hooks/` directory is copied into the installed app dir so declared
+lifecycle scripts exist at runtime.
 
 ---
 
@@ -170,14 +174,49 @@ layer never touches the filesystem.
   identical to the worker, so a lifecycle script cannot exceed what the app is
   already granted.
 - Each run emits a `miniapp-lifecycle` event
-  (`miniapp_lifecycle_event_payload`: `{ id, event, script, succeeded }`) for
-  the UI / telemetry.
-- Failures are surfaced, not silently swallowed. `install` failure aborts the
-  install and rolls back atomically; `uninstall` failure is reported but does
-  not block directory removal (an app must always be removable). `start` /
-  `stop` failures are reported and do not wedge the worker lifecycle.
+  (`{ id, event, script, succeeded, exitCode, error }`) for the UI / telemetry,
+  and the desktop command returns the outcome to the caller.
+- Lifecycle scripts are **best-effort**: a failing script (non-zero exit,
+  missing file, traversal attempt, or no runtime) is surfaced via the event,
+  the command result, and logs, but it does **not** abort or roll back the
+  surrounding flow. `install` runs after the app is committed, `uninstall` runs
+  before removal (an app must always be removable), and `stop` runs as part of
+  worker teardown. This mirrors how npm lifecycle scripts behave and keeps the
+  app store consistent even when a hook misbehaves; authors that need hard
+  guarantees should assert inside the script and react to the reported failure.
 
 ---
+
+## 2b. Named scripts (capability extension)
+
+Beyond the four fixed lifecycle hooks, an app may ship **named scripts** to
+extend its capabilities — arbitrary commands the author bundles (recommended
+under `scripts/`) and invokes on demand.
+
+Declared in `meta.json` under `scripts` (`Vec<MiniAppScriptDef>`):
+
+```json
+{
+  "scripts": [
+    { "name": "build", "path": "scripts/build.js", "description": "Rebuild output" },
+    { "name": "sync",  "path": "scripts/sync.js" }
+  ]
+}
+```
+
+- `name` is the stable invocation id; `path` is resolved against the app root
+  with the same traversal guard as lifecycle scripts (`find_script_path` +
+  `plan_named_script`), and run with the detected JS runtime.
+- Invocation: `MiniAppManager::run_named_script(app_id, name, args)` →
+  desktop command `miniapp_run_script` (emits a `miniapp-script` event with the
+  outcome). The gallery detail modal lists declared scripts with a Run button;
+  `MiniAppAPI.runScript` / `setScripts` back it.
+- Execution semantics match §2.4: trusted host code in the app dir, with
+  `BITFUN_MINIAPP_{ID,DIR,SCRIPT,POLICY}` env and forwarded CLI `args`,
+  captured stdout/stderr/exit-code, best-effort (failures surfaced, never
+  auto-rollback).
+- Named scripts are part of the content hash and carried on import (the
+  `scripts/` directory travels with the app).
 
 ## 3. View modes
 
@@ -243,13 +282,56 @@ The specification is delivered incrementally. Current state:
       `MiniAppLifecycleScripts`, `view_mode` / `lifecycle` fields, `HOOKS_DIR`,
       safe path resolver, `plan_lifecycle_script`, and event payload — with unit
       and contract tests in `bitfun-product-domains`.
-- [ ] Services: execute lifecycle scripts on install/uninstall/start/stop via the
-      process facade, with permission policy and event emission.
-- [ ] Assembly: manager dispatch of lifecycle events and view-mode updates wired
-      to `PathManager`.
-- [ ] Desktop: Tauri commands for setting view mode and for independent (`full`)
-      windows.
-- [ ] Web UI: render `background` panel, `front` tab, and `full` window; expose
-      lifecycle status.
+- [x] Services: `run_lifecycle_script` runs a resolved script (Bun/Node) via the
+      non-interactive process facade, injecting app/event/policy env and
+      capturing stdout/stderr/exit code, in `bitfun-services-integrations`.
+- [x] Assembly: `MiniAppManager::run_lifecycle_event` (traversal-guarded resolve
+      + runtime detect + run + report), `set_view_mode`, and
+      `set_lifecycle_scripts`, wired to `PathManager` and the permission policy,
+      with tests.
+- [x] Desktop: Tauri commands `miniapp_set_view_mode`,
+      `miniapp_set_lifecycle_scripts`, `miniapp_run_lifecycle_event`, and
+      `open_miniapp_full_window`; automatic `install` (create/import),
+      `uninstall` (delete), and `stop` (worker stop) dispatch with
+      `miniapp-lifecycle` events.
+- [x] Web UI: `MiniAppAPI` gains `setViewMode` / `setLifecycleScripts` /
+      `runLifecycleEvent` / `openFullWindow` and `view_mode` / `lifecycle` types;
+      opening an app branches on view mode — `full` opens an independent OS
+      window via the `?bitfunWindow=miniapp` standalone render, `background`
+      stays resident in the collapsed `MiniAppBackgroundDock` panel, `front`
+      opens a tab — and fires the `start` lifecycle event on activation. The
+      gallery detail modal exposes a view-mode selector (background / tab /
+      window).
+
+### Verified
+
+- Contracts/services/assembly: `cargo test` for `bitfun-product-domains`
+  (58 lib + 39 contract), `bitfun-services-integrations` miniapp runtime + import
+  IO, and `bitfun-core` `miniapp::manager` (incl. a real hook-script run).
+- View modes: GUI-verified live — `background` dock, `front` tab, and `full`
+  window all open, and the full window renders real app content.
+- Lifecycle: end-to-end verified — importing an app with an `install` hook runs
+  the script during the install event (marker file written with `BITFUN_MINIAPP_*`
+  env context), with `hooks/` carried into the installed app dir.
+
+- [x] Named scripts: `MiniAppScriptDef` + `scripts` manifest field,
+      `find_script_path` / `plan_named_script`, args-aware `run_miniapp_script`,
+      `MiniAppManager::run_named_script` / `set_scripts`, desktop
+      `miniapp_run_script` / `miniapp_set_scripts`, `MiniAppAPI` + gallery Run
+      UI, `scripts/` carried on import — with contract + manager tests.
+
+### Design boundary: scripts and the market
+
+Lifecycle hooks and named scripts run as **trusted, host-privileged** code
+(outside the iframe sandbox). They are therefore supported for **user-created
+and folder-imported** apps, where the user is the author/installer of that code.
+
+Market-distributed packages intentionally do **not** carry `hooks/` or
+`scripts/`: the market ZIP is a strict, separately-validated whitelist
+(`meta.json` + `source/*`), and allowing a downloaded package to ship
+host-privileged scripts that auto-run on install would be a security escalation.
+Bringing scripts to market apps is a future item that requires an explicit
+review/consent model (and matching client + server validator changes), not a
+simple whitelist widening.
 
 Each subsequent change keeps this table current.

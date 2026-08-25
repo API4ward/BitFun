@@ -7,9 +7,9 @@ use bitfun_product_domains::miniapp::ports::{
 use bitfun_product_domains::miniapp::storage::{
     build_package_json, parse_npm_dependencies, MiniAppImportBundleWriteRequest,
     MiniAppImportLayout, MiniAppStorageLayout, COMPILED_HTML, CUSTOMIZATION_JSON,
-    DRAFTS_CLEANUP_MARKER, DRAFTS_CLEANUP_PREFIX, DRAFTS_DIR, DRAFT_JSON, ESM_DEPS_JSON,
-    INDEX_HTML, META_JSON, PACKAGE_JSON, REQUIRED_SOURCE_FILES, STORAGE_JSON, STYLE_CSS, UI_JS,
-    VERSIONS_DIR, WORKER_JS,
+    DRAFTS_CLEANUP_MARKER, DRAFTS_CLEANUP_PREFIX, DRAFTS_DIR, DRAFT_JSON, ESM_DEPS_JSON, HOOKS_DIR,
+    INDEX_HTML, META_JSON, PACKAGE_JSON, REQUIRED_SOURCE_FILES, SCRIPTS_DIR, STORAGE_JSON,
+    STYLE_CSS, UI_JS, VERSIONS_DIR, WORKER_JS,
 };
 use bitfun_product_domains::miniapp::types::{MiniApp, MiniAppMeta, MiniAppSource, NpmDep};
 use serde_json;
@@ -277,9 +277,54 @@ impl MiniAppStorage {
                 .map_err(|_| MiniAppStorageError::io("Failed to write storage.json"))?;
         }
 
+        // Carry optional capability directories so declared lifecycle hooks and
+        // named scripts exist after import.
+        for extra_dir in [HOOKS_DIR, SCRIPTS_DIR] {
+            let from = request.source_path.join(extra_dir);
+            if from.is_dir() {
+                Self::copy_dir_recursive(&from, &dest_dir.join(extra_dir)).await?;
+            }
+        }
+
         tokio::fs::write(dest_dir.join(COMPILED_HTML), request.compiled_html)
             .await
             .map_err(|_| MiniAppStorageError::io("Failed to write placeholder compiled.html"))?;
+        Ok(())
+    }
+
+    /// Recursively copy a directory tree (used to carry the `hooks/` directory on
+    /// import). Iterative to avoid boxing an async recursion.
+    async fn copy_dir_recursive(from: &Path, to: &Path) -> MiniAppStorageResult<()> {
+        let mut pending: Vec<(PathBuf, PathBuf)> = vec![(from.to_path_buf(), to.to_path_buf())];
+        while let Some((src, dst)) = pending.pop() {
+            tokio::fs::create_dir_all(&dst).await.map_err(|e| {
+                MiniAppStorageError::io(format!("Failed to create {}: {}", dst.display(), e))
+            })?;
+            let mut entries = tokio::fs::read_dir(&src).await.map_err(|e| {
+                MiniAppStorageError::io(format!("Failed to read {}: {}", src.display(), e))
+            })?;
+            while let Some(entry) = entries.next_entry().await.map_err(|e| {
+                MiniAppStorageError::io(format!("Failed to enumerate {}: {}", src.display(), e))
+            })? {
+                let file_type = entry.file_type().await.map_err(|e| {
+                    MiniAppStorageError::io(format!("Failed to stat entry: {}", e))
+                })?;
+                let child_src = entry.path();
+                let child_dst = dst.join(entry.file_name());
+                if file_type.is_dir() {
+                    pending.push((child_src, child_dst));
+                } else if file_type.is_file() {
+                    tokio::fs::copy(&child_src, &child_dst).await.map_err(|e| {
+                        MiniAppStorageError::io(format!(
+                            "Failed to copy {}: {}",
+                            child_src.display(),
+                            e
+                        ))
+                    })?;
+                }
+                // Symlinks and other node types are intentionally skipped.
+            }
+        }
         Ok(())
     }
 
@@ -365,6 +410,7 @@ impl MiniAppStorage {
             runtime_profile: meta.runtime_profile,
             view_mode: meta.view_mode,
             lifecycle: meta.lifecycle,
+            scripts: meta.scripts,
             i18n: meta.i18n,
         })
     }
@@ -751,6 +797,7 @@ impl MiniAppStorage {
             runtime_profile: meta.runtime_profile,
             view_mode: meta.view_mode,
             lifecycle: meta.lifecycle,
+            scripts: meta.scripts,
             i18n: meta.i18n,
         })
     }
@@ -1453,6 +1500,14 @@ mod tests {
         )
         .unwrap();
         fs::write(import_source_dir.join(WORKER_JS), "").unwrap();
+        // Lifecycle hooks directory must travel with the imported app.
+        let import_hooks_dir = import_root.join(HOOKS_DIR);
+        fs::create_dir_all(&import_hooks_dir).unwrap();
+        fs::write(
+            import_hooks_dir.join("install.js"),
+            "console.log('installed');",
+        )
+        .unwrap();
 
         let storage = MiniAppStorage::new(miniapps_dir.clone());
         let read_meta = storage.read_import_meta_json(&import_root).await.unwrap();
@@ -1488,6 +1543,11 @@ mod tests {
         assert_eq!(
             fs::read_to_string(layout.compiled_path()).unwrap(),
             "<html>placeholder</html>"
+        );
+        // The hooks directory and its scripts are carried into the app dir.
+        assert_eq!(
+            fs::read_to_string(layout.app_dir().join(HOOKS_DIR).join("install.js")).unwrap(),
+            "console.log('installed');"
         );
     }
 
@@ -1852,6 +1912,7 @@ mod tests {
             runtime_profile: Default::default(),
             view_mode: Default::default(),
             lifecycle: Default::default(),
+            scripts: Default::default(),
             i18n: None,
         }
     }

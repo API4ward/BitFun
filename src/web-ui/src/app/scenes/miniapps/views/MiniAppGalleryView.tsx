@@ -13,7 +13,7 @@ import {
 import { open } from '@tauri-apps/plugin-dialog';
 import { useSceneManager } from '@/app/hooks/useSceneManager';
 import MiniAppCard from '../components/MiniAppCard';
-import type { MiniAppMeta } from '@/infrastructure/api/service-api/MiniAppAPI';
+import type { MiniAppMeta, MiniAppViewMode } from '@/infrastructure/api/service-api/MiniAppAPI';
 import { miniAppAPI } from '@/infrastructure/api/service-api/MiniAppAPI';
 import {
   miniAppMarketAPI,
@@ -54,6 +54,8 @@ const MiniAppGalleryView: React.FC = () => {
   const setMarketOrigins = useMiniAppStore((state) => state.setMarketOrigins);
   const setRunningWorkerIds = useMiniAppStore((state) => state.setRunningWorkerIds);
   const markWorkerStopped = useMiniAppStore((state) => state.markWorkerStopped);
+  const upsertApp = useMiniAppStore((state) => state.upsertApp);
+  const openBackground = useMiniAppStore((state) => state.openBackground);
   const { workspacePath } = useCurrentWorkspace();
   const notification = useNotification();
   const { openScene, activateScene, closeScene, openTabs } = useSceneManager();
@@ -109,6 +111,29 @@ const MiniAppGalleryView: React.FC = () => {
   const handleOpenApp = useCallback(
     (appId: string) => {
       setSelectedApp(null);
+      const app = apps.find((candidate) => candidate.id === appId);
+      const viewMode = app?.view_mode ?? 'front';
+
+      // Fire the `start` lifecycle hook on activation (host runs it if declared).
+      void miniAppAPI
+        .runLifecycleEvent(appId, 'start')
+        .catch((error) => log.warn('MiniApp start lifecycle failed', error));
+
+      if (viewMode === 'full') {
+        // Full mode opens an independent OS window instead of a scene tab.
+        void miniAppAPI
+          .openFullWindow(appId, app?.name)
+          .catch((error) => log.error('Open MiniApp window failed', error));
+        return;
+      }
+
+      if (viewMode === 'background') {
+        // Background mode stays resident in the collapsed dock panel.
+        openBackground(appId);
+        return;
+      }
+
+      // Front (default): open in a scene tab in the main shell.
       const tabId: SceneTabId = `miniapp:${appId}`;
       if (openTabIds.has(tabId)) {
         activateScene(tabId);
@@ -116,7 +141,7 @@ const MiniAppGalleryView: React.FC = () => {
         openScene(tabId);
       }
     },
-    [openTabIds, activateScene, openScene]
+    [apps, openBackground, openTabIds, activateScene, openScene]
   );
 
   const handleStopRunning = useCallback(
@@ -134,6 +159,43 @@ const MiniAppGalleryView: React.FC = () => {
       }
     },
     [markWorkerStopped, closeScene, openTabIds]
+  );
+
+  const handleSetViewMode = useCallback(
+    async (appId: string, mode: MiniAppViewMode) => {
+      try {
+        const updated = await miniAppAPI.setViewMode(appId, mode);
+        upsertApp(updated);
+        setSelectedApp((current) => (current && current.id === appId ? updated : current));
+      } catch (error) {
+        log.error('Set view mode failed', error);
+      }
+    },
+    [upsertApp]
+  );
+
+  const handleRunScript = useCallback(
+    async (appId: string, scriptName: string) => {
+      try {
+        const result = await miniAppAPI.runScript(appId, scriptName);
+        if (result.succeeded) {
+          notification.success(t('detail.scripts.ran', { name: scriptName }));
+        } else {
+          notification.error(
+            t('detail.scripts.failed', {
+              name: scriptName,
+              error: result.error ?? (result.stderr || '').trim(),
+            })
+          );
+        }
+      } catch (error) {
+        log.error('Run script failed', error);
+        notification.error(
+          t('detail.scripts.failed', { name: scriptName, error: String(error) })
+        );
+      }
+    },
+    [notification, t]
   );
 
   const handleDeleteRequest = (appId: string) => {
@@ -433,16 +495,97 @@ const MiniAppGalleryView: React.FC = () => {
       >
         {selectedApp ? (() => {
           const detailTags = pickLocalizedTags(selectedApp, currentLanguage);
-          return detailTags.length ? (
-            <div data-bf-component="miniapp-gallery-view" data-bf-part="detailTags" className="miniapp-gallery__detail-tags">
-              {detailTags.map((tag) => (
-                <span key={tag} className="miniapp-gallery__detail-tag">
-                  <Tag size={11} />
-                  {tag}
+          const activeMode: MiniAppViewMode = selectedApp.view_mode ?? 'front';
+          const modeVariant = (mode: MiniAppViewMode) =>
+            activeMode === mode ? 'primary' : 'secondary';
+          return (
+            <>
+              <div
+                data-bf-component="miniapp-gallery-view"
+                data-bf-part="detailViewMode"
+                className="miniapp-gallery__detail-view-mode"
+              >
+                <span className="miniapp-gallery__detail-view-mode-label">
+                  {t('detail.viewMode.label')}
                 </span>
-              ))}
-            </div>
-          ) : null;
+                <div
+                  className="miniapp-gallery__detail-view-mode-options"
+                  role="group"
+                  aria-label={t('detail.viewMode.label')}
+                  style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
+                >
+                  <Button
+                    variant={modeVariant('background')}
+                    size="small"
+                    onClick={() => void handleSetViewMode(selectedApp.id, 'background')}
+                  >
+                    {t('detail.viewMode.background')}
+                  </Button>
+                  <Button
+                    variant={modeVariant('front')}
+                    size="small"
+                    onClick={() => void handleSetViewMode(selectedApp.id, 'front')}
+                  >
+                    {t('detail.viewMode.front')}
+                  </Button>
+                  <Button
+                    variant={modeVariant('full')}
+                    size="small"
+                    onClick={() => void handleSetViewMode(selectedApp.id, 'full')}
+                  >
+                    {t('detail.viewMode.full')}
+                  </Button>
+                </div>
+                <p className="miniapp-gallery__detail-view-mode-hint">
+                  {t('detail.viewMode.hint')}
+                </p>
+              </div>
+              {selectedApp.scripts && selectedApp.scripts.length > 0 ? (
+                <div
+                  data-bf-component="miniapp-gallery-view"
+                  data-bf-part="detailScripts"
+                  className="miniapp-gallery__detail-scripts"
+                >
+                  <span className="miniapp-gallery__detail-scripts-label">
+                    {t('detail.scripts.label')}
+                  </span>
+                  <div className="miniapp-gallery__detail-scripts-list">
+                    {selectedApp.scripts.map((script) => (
+                      <div
+                        key={script.name}
+                        className="miniapp-gallery__detail-script"
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+                      >
+                        <Button
+                          variant="secondary"
+                          size="small"
+                          onClick={() => void handleRunScript(selectedApp.id, script.name)}
+                        >
+                          <Play size={12} />
+                          {script.name}
+                        </Button>
+                        {script.description ? (
+                          <span className="miniapp-gallery__detail-script-desc">
+                            {script.description}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {detailTags.length ? (
+                <div data-bf-component="miniapp-gallery-view" data-bf-part="detailTags" className="miniapp-gallery__detail-tags">
+                  {detailTags.map((tag) => (
+                    <span key={tag} className="miniapp-gallery__detail-tag">
+                      <Tag size={11} />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          );
         })() : null}
       </GalleryDetailModal>
 

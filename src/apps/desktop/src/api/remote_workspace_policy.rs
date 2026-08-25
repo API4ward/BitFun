@@ -1275,6 +1275,11 @@ pub const REMOTE_WORKSPACE_COMMAND_POLICIES: &[(&str, RemoteWorkspacePolicy)] = 
         RemoteWorkspacePolicy::LegacyUnaudited,
     ),
     (
+        "miniapp_run_lifecycle_event",
+        RemoteWorkspacePolicy::LocalOnly,
+    ),
+    ("miniapp_run_script", RemoteWorkspacePolicy::LocalOnly),
+    (
         "miniapp_runtime_status",
         RemoteWorkspacePolicy::LegacyUnaudited,
     ),
@@ -1282,6 +1287,12 @@ pub const REMOTE_WORKSPACE_COMMAND_POLICIES: &[(&str, RemoteWorkspacePolicy)] = 
         "miniapp_set_draft_permissions",
         RemoteWorkspacePolicy::LegacyUnaudited,
     ),
+    (
+        "miniapp_set_lifecycle_scripts",
+        RemoteWorkspacePolicy::LocalOnly,
+    ),
+    ("miniapp_set_scripts", RemoteWorkspacePolicy::LocalOnly),
+    ("miniapp_set_view_mode", RemoteWorkspacePolicy::LocalOnly),
     (
         "miniapp_sync_draft_from_fs",
         RemoteWorkspacePolicy::LegacyUnaudited,
@@ -1315,6 +1326,7 @@ pub const REMOTE_WORKSPACE_COMMAND_POLICIES: &[(&str, RemoteWorkspacePolicy)] = 
         "open_html_file_in_browser",
         RemoteWorkspacePolicy::LocalOnly,
     ),
+    ("open_miniapp_full_window", RemoteWorkspacePolicy::LocalOnly),
     ("open_remote_workspace", RemoteWorkspacePolicy::RemoteRouted),
     ("open_workspace", RemoteWorkspacePolicy::LegacyUnaudited),
     (

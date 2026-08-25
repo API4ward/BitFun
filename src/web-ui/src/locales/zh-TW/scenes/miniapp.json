@@ -21,7 +21,26 @@
   "detail": {
     "stop": "停止",
     "delete": "刪除",
-    "open": "開啟"
+    "open": "開啟",
+    "viewMode": {
+      "label": "開啟方式",
+      "background": "背景面板",
+      "front": "分頁",
+      "full": "獨立視窗",
+      "hint": "背景面板常駐側欄面板，分頁在工作區中開啟，獨立視窗在單獨的系統視窗中開啟。"
+    },
+    "scripts": {
+      "label": "腳本",
+      "ran": "腳本「{{name}}」已執行完成",
+      "failed": "腳本「{{name}}」執行失敗：{{error}}"
+    }
+  },
+  "dock": {
+    "title": "背景應用（{{count}}）",
+    "expand": "展開",
+    "collapse": "收起",
+    "close": "關閉",
+    "loading": "載入中…"
   },
   "confirmDelete": {
     "title": "刪除 \"{{name}}\"？",

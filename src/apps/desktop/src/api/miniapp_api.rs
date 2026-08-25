@@ -16,6 +16,9 @@ use bitfun_core::miniapp::lifecycle::{
     workspace_root_from_input,
 };
 use bitfun_core::miniapp::rate_limit::{MiniAppRateLimitState, MiniAppRateLimitSubject};
+use bitfun_core::miniapp::types::{
+    MiniAppLifecycleEvent, MiniAppLifecycleScripts, MiniAppScriptDef, MiniAppViewMode,
+};
 use bitfun_core::miniapp::{
     dispatch_host, is_host_primitive, InstallResult as CoreInstallResult, MiniApp,
     MiniAppAiContext, MiniAppCustomizationMetadata, MiniAppDraft, MiniAppMeta,
@@ -280,6 +283,47 @@ async fn emit_miniapp_event(event_name: &str, payload: Value) {
     .await;
 }
 
+/// Run a MiniApp lifecycle event's script (if declared) and emit a
+/// `miniapp-lifecycle` event describing the outcome. Failures are surfaced to
+/// the UI and logged; they are best-effort and never abort the surrounding
+/// install/uninstall/stop flow (see docs/features/mini-app-system.md).
+async fn run_and_emit_lifecycle(
+    state: &State<'_, AppState>,
+    app_id: &str,
+    event: MiniAppLifecycleEvent,
+) -> Option<bitfun_core::miniapp::MiniAppLifecycleReport> {
+    match state
+        .miniapp_manager
+        .run_lifecycle_event(app_id, event)
+        .await
+    {
+        Ok(Some(report)) => {
+            if !report.succeeded {
+                log::warn!(
+                    "MiniApp lifecycle '{}' script failed for {}: exit={:?} error={:?} stderr={}",
+                    event.as_str(),
+                    app_id,
+                    report.exit_code,
+                    report.error,
+                    report.stderr.trim()
+                );
+            }
+            emit_miniapp_event("miniapp-lifecycle", report.to_event_payload(app_id)).await;
+            Some(report)
+        }
+        Ok(None) => None,
+        Err(error) => {
+            log::warn!(
+                "MiniApp lifecycle '{}' dispatch error for {}: {}",
+                event.as_str(),
+                app_id,
+                error
+            );
+            None
+        }
+    }
+}
+
 async fn maybe_stop_worker(state: &State<'_, AppState>, app: &MiniApp) {
     if should_stop_worker_for_runtime_update(app) {
         if let Some(ref pool) = state.js_worker_pool {
@@ -409,6 +453,7 @@ pub async fn create_miniapp(
         miniapp_runtime_event_payload(&app, "create"),
     )
     .await;
+    run_and_emit_lifecycle(&state, &app.id, MiniAppLifecycleEvent::Install).await;
     Ok(app)
 }
 
@@ -446,6 +491,9 @@ pub async fn update_miniapp(
 
 #[tauri::command]
 pub async fn delete_miniapp(state: State<'_, AppState>, app_id: String) -> Result<(), String> {
+    // Run the uninstall hook while the app directory (and its script) still
+    // exist; failures are surfaced but do not block removal.
+    run_and_emit_lifecycle(&state, &app_id, MiniAppLifecycleEvent::Uninstall).await;
     if let Some(ref pool) = state.js_worker_pool {
         pool.stop(app_id.as_str()).await;
     }
@@ -692,6 +740,7 @@ pub async fn miniapp_worker_stop(state: State<'_, AppState>, app_id: String) -> 
     if let Some(ref pool) = state.js_worker_pool {
         pool.stop(&app_id).await;
     }
+    run_and_emit_lifecycle(&state, &app_id, MiniAppLifecycleEvent::Stop).await;
     emit_miniapp_event(
         "miniapp-worker-stopped",
         miniapp_worker_stopped_payload(&app_id, "manual-stop"),
@@ -806,7 +855,188 @@ pub async fn miniapp_import_from_path(
         miniapp_runtime_event_payload(&app, "import"),
     )
     .await;
+    run_and_emit_lifecycle(&state, &app.id, MiniAppLifecycleEvent::Install).await;
     Ok(app)
+}
+
+/// Set a MiniApp's persisted view mode (`background` / `front` / `full`).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetViewModeRequest {
+    pub app_id: String,
+    pub view_mode: String,
+}
+
+#[tauri::command]
+pub async fn miniapp_set_view_mode(
+    state: State<'_, AppState>,
+    request: SetViewModeRequest,
+) -> Result<MiniApp, String> {
+    let mode = MiniAppViewMode::from_wire(&request.view_mode);
+    let app = state
+        .miniapp_manager
+        .set_view_mode(&request.app_id, mode)
+        .await
+        .map_err(|e| e.to_string())?;
+    emit_miniapp_event(
+        "miniapp-updated",
+        miniapp_runtime_event_payload(&app, "view-mode"),
+    )
+    .await;
+    Ok(app)
+}
+
+/// Replace a MiniApp's lifecycle scripts (install/uninstall/start/stop).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetLifecycleScriptsRequest {
+    pub app_id: String,
+    #[serde(default)]
+    pub lifecycle: MiniAppLifecycleScripts,
+}
+
+#[tauri::command]
+pub async fn miniapp_set_lifecycle_scripts(
+    state: State<'_, AppState>,
+    request: SetLifecycleScriptsRequest,
+) -> Result<MiniApp, String> {
+    let app = state
+        .miniapp_manager
+        .set_lifecycle_scripts(&request.app_id, request.lifecycle)
+        .await
+        .map_err(|e| e.to_string())?;
+    emit_miniapp_event(
+        "miniapp-updated",
+        miniapp_runtime_event_payload(&app, "lifecycle"),
+    )
+    .await;
+    Ok(app)
+}
+
+/// Explicitly trigger a lifecycle event (used by the UI for start/stop on
+/// activation/deactivation; install/uninstall also fire automatically).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunLifecycleEventRequest {
+    pub app_id: String,
+    pub event: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecycleRunResult {
+    pub ran: bool,
+    pub succeeded: bool,
+    pub exit_code: Option<i32>,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn miniapp_run_lifecycle_event(
+    state: State<'_, AppState>,
+    request: RunLifecycleEventRequest,
+) -> Result<LifecycleRunResult, String> {
+    let Some(event) = MiniAppLifecycleEvent::from_wire(&request.event) else {
+        return Err(format!("Unknown lifecycle event: {}", request.event));
+    };
+    match run_and_emit_lifecycle(&state, &request.app_id, event).await {
+        Some(report) => Ok(LifecycleRunResult {
+            ran: true,
+            succeeded: report.succeeded,
+            exit_code: report.exit_code,
+            error: report.error,
+        }),
+        None => Ok(LifecycleRunResult {
+            ran: false,
+            succeeded: true,
+            exit_code: None,
+            error: None,
+        }),
+    }
+}
+
+/// Replace a MiniApp's named scripts (`scripts` in the manifest).
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetScriptsRequest {
+    pub app_id: String,
+    #[serde(default)]
+    pub scripts: Vec<MiniAppScriptDef>,
+}
+
+#[tauri::command]
+pub async fn miniapp_set_scripts(
+    state: State<'_, AppState>,
+    request: SetScriptsRequest,
+) -> Result<MiniApp, String> {
+    let app = state
+        .miniapp_manager
+        .set_scripts(&request.app_id, request.scripts)
+        .await
+        .map_err(|e| e.to_string())?;
+    emit_miniapp_event(
+        "miniapp-updated",
+        miniapp_runtime_event_payload(&app, "scripts"),
+    )
+    .await;
+    Ok(app)
+}
+
+/// Run a named script the app declared, forwarding optional args.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunScriptRequest {
+    pub app_id: String,
+    pub script: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScriptRunResult {
+    pub ran: bool,
+    pub succeeded: bool,
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn miniapp_run_script(
+    state: State<'_, AppState>,
+    request: RunScriptRequest,
+) -> Result<ScriptRunResult, String> {
+    let report = state
+        .miniapp_manager
+        .run_named_script(&request.app_id, &request.script, request.args)
+        .await
+        .map_err(|e| e.to_string())?;
+    match report {
+        Some(report) => {
+            if !report.succeeded {
+                log::warn!(
+                    "MiniApp script '{}' failed for {}: exit={:?} error={:?} stderr={}",
+                    report.name,
+                    request.app_id,
+                    report.exit_code,
+                    report.error,
+                    report.stderr.trim()
+                );
+            }
+            emit_miniapp_event("miniapp-script", report.to_event_payload(&request.app_id)).await;
+            Ok(ScriptRunResult {
+                ran: true,
+                succeeded: report.succeeded,
+                exit_code: report.exit_code,
+                stdout: report.stdout,
+                stderr: report.stderr,
+                error: report.error,
+            })
+        }
+        None => Err(format!("MiniApp has no script named '{}'", request.script)),
+    }
 }
 
 #[tauri::command]

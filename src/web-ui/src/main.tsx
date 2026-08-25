@@ -1,8 +1,10 @@
 import ReactDOM from "react-dom/client";
 import App from "./app/App";
 import AgentCompanionDesktopPet from "./app/components/AgentCompanionDesktopPet/AgentCompanionDesktopPet";
+import MiniAppScene from "./app/scenes/miniapps/MiniAppScene";
 import AppErrorBoundary from "./app/components/AppErrorBoundary";
 import { STARTUP_OVERLAY_HIDDEN_EVENT } from "./app/startup/startupSignals";
+import { hideStartupOverlay } from "./app/startup/startupOverlay";
 import { WorkspaceProvider } from "./infrastructure/contexts/WorkspaceProvider";
 import { PeerDeviceProvider } from "./infrastructure/peer-device/PeerDeviceContext";
 import { PeerHostInvokeBridge } from "./infrastructure/peer-device/PeerHostInvokeBridge";
@@ -340,10 +342,37 @@ async function startApplication(): Promise<void> {
     durationMs: 0,
     mode: 'static',
   });
-  const isAgentCompanionWindow = new URLSearchParams(window.location.search)
-    .get('bitfunWindow') === 'agent-companion';
+  const windowParams = new URLSearchParams(window.location.search);
+  const isAgentCompanionWindow = windowParams.get('bitfunWindow') === 'agent-companion';
+  const miniAppWindowId =
+    windowParams.get('bitfunWindow') === 'miniapp'
+      ? (windowParams.get('miniAppId') ?? '').trim()
+      : '';
 
   const renderStartedAt = nowMs();
+  if (miniAppWindowId) {
+    // Full view mode: host the MiniApp in its own OS window, reusing the shared
+    // scene component inside the minimal provider set it needs.
+    ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+      <AppErrorBoundary>
+        <I18nProvider>
+          <WorkspaceProvider>
+            <MiniAppScene appId={miniAppWindowId} />
+          </WorkspaceProvider>
+        </I18nProvider>
+      </AppErrorBoundary>
+    );
+    // This standalone window does not run the full post-render startup pipeline,
+    // so dismiss the static startup overlay explicitly or it would cover the app.
+    void hideStartupOverlay();
+    logElapsed(log, 'Startup step completed', renderStartedAt, {
+      data: {
+        step: 'scheduleMiniAppWindowRender',
+        sinceStartupMs: elapsedMs(appStartedAt),
+      },
+    });
+    return;
+  }
   if (isAgentCompanionWindow) {
     ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       <AppErrorBoundary>
