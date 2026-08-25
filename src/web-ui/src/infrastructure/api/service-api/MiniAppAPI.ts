@@ -176,6 +176,34 @@ export interface MiniAppI18n {
   locales: Record<string, MiniAppLocaleStrings>;
 }
 
+/**
+ * How a MiniApp is presented in the host shell:
+ * - `background`: collapsed into a compact resident panel
+ * - `front` (default): opens inside a tab in the main content area
+ * - `full`: opens in its own independent OS window
+ */
+export type MiniAppViewMode = 'background' | 'front' | 'full';
+
+/** A MiniApp lifecycle transition that can trigger a user-defined script. */
+export type MiniAppLifecycleEvent = 'install' | 'uninstall' | 'start' | 'stop';
+
+/** Per-event lifecycle script paths, relative to the app root. */
+export interface MiniAppLifecycleScripts {
+  install?: string;
+  uninstall?: string;
+  start?: string;
+  stop?: string;
+}
+
+/** Result of triggering a lifecycle event via `runLifecycleEvent`. */
+export interface LifecycleRunResult {
+  /** Whether a script was declared and therefore run. */
+  ran: boolean;
+  succeeded: boolean;
+  exitCode?: number | null;
+  error?: string | null;
+}
+
 export interface MiniAppMeta {
   id: string;
   name: string;
@@ -189,6 +217,10 @@ export interface MiniAppMeta {
   permissions: MiniAppPermissions;
   runtime?: MiniAppRuntimeState;
   runtime_profile?: MiniAppRuntimeProfile;
+  /** Presentation mode (background panel / front tab / full window). */
+  view_mode?: MiniAppViewMode;
+  /** User-declared lifecycle scripts (install/uninstall/start/stop). */
+  lifecycle?: MiniAppLifecycleScripts;
   /** Optional per-locale overrides for `name` / `description` / `tags`. */
   i18n?: MiniAppI18n;
 }
@@ -342,6 +374,46 @@ export class MiniAppAPI {
       await api.invoke('delete_miniapp', { appId });
     } catch (error) {
       throw createTauriCommandError('delete_miniapp', error, { appId });
+    }
+  }
+
+  /** Set the app's persisted view mode (background / front / full). */
+  async setViewMode(appId: string, viewMode: MiniAppViewMode): Promise<MiniApp> {
+    try {
+      return await api.invoke('miniapp_set_view_mode', { request: { appId, viewMode } });
+    } catch (error) {
+      throw createTauriCommandError('miniapp_set_view_mode', error, { appId, viewMode });
+    }
+  }
+
+  /** Replace the app's lifecycle scripts (install/uninstall/start/stop). */
+  async setLifecycleScripts(appId: string, lifecycle: MiniAppLifecycleScripts): Promise<MiniApp> {
+    try {
+      return await api.invoke('miniapp_set_lifecycle_scripts', { request: { appId, lifecycle } });
+    } catch (error) {
+      throw createTauriCommandError('miniapp_set_lifecycle_scripts', error, { appId });
+    }
+  }
+
+  /**
+   * Explicitly trigger a lifecycle event. Install/uninstall/stop also fire
+   * automatically host-side; the UI uses this for `start` (and `stop`) on
+   * activation / deactivation.
+   */
+  async runLifecycleEvent(appId: string, event: MiniAppLifecycleEvent): Promise<LifecycleRunResult> {
+    try {
+      return await api.invoke('miniapp_run_lifecycle_event', { request: { appId, event } });
+    } catch (error) {
+      throw createTauriCommandError('miniapp_run_lifecycle_event', error, { appId, event });
+    }
+  }
+
+  /** Open (or focus) an independent OS window hosting the app in full mode. */
+  async openFullWindow(appId: string, title?: string): Promise<void> {
+    try {
+      await api.invoke('open_miniapp_full_window', { appId, title });
+    } catch (error) {
+      throw createTauriCommandError('open_miniapp_full_window', error, { appId });
     }
   }
 
