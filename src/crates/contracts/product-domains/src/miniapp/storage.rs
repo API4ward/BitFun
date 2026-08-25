@@ -25,6 +25,11 @@ pub const VERSIONS_DIR: &str = "versions";
 /// relative to the app root, so hooks may also live at the app root; this
 /// constant documents the recommended layout.
 pub const HOOKS_DIR: &str = "hooks";
+/// Conventional directory for named capability scripts inside an app
+/// (`{app_dir}/scripts/`). Like hooks, a named script's path in `meta.json` is
+/// resolved relative to the app root, so scripts may live elsewhere; this
+/// constant documents the recommended layout and is carried on import.
+pub const SCRIPTS_DIR: &str = "scripts";
 pub const DRAFTS_DIR: &str = ".drafts";
 pub const DRAFTS_CLEANUP_PREFIX: &str = ".drafts.cleanup-";
 pub const DRAFTS_CLEANUP_MARKER: &str = ".cleanup-pending";

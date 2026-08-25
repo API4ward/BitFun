@@ -55,12 +55,27 @@ pub async fn run_lifecycle_script(
     extra_env: &[(String, String)],
     timeout_ms: u64,
 ) -> Result<LifecycleScriptOutcome, String> {
+    run_miniapp_script(runtime, script_path, app_dir, &[], extra_env, timeout_ms).await
+}
+
+/// Run a MiniApp script (lifecycle hook or named script) with optional CLI
+/// arguments, identical to [`run_lifecycle_script`] but forwarding `args` to the
+/// script process.
+pub async fn run_miniapp_script(
+    runtime: &DetectedRuntime,
+    script_path: &Path,
+    app_dir: &Path,
+    args: &[String],
+    extra_env: &[(String, String)],
+    timeout_ms: u64,
+) -> Result<LifecycleScriptOutcome, String> {
     let exe = runtime.path.to_string_lossy();
     let script = script_path.to_string_lossy();
 
     let mut command = bitfun_services_core::process_manager::create_tokio_command(&*exe);
     command
         .arg(&*script)
+        .args(args)
         .current_dir(app_dir)
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
