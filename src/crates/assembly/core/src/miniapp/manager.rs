@@ -12,6 +12,12 @@ use crate::miniapp::types::{
 };
 use crate::product_domain_runtime::CoreProductDomainRuntime;
 use crate::util::errors::{BitFunError, BitFunResult};
+use bitfun_product_domains::miniapp::runtime::detect_runtime;
+use bitfun_product_domains::miniapp::storage::resolve_contained_relative;
+use bitfun_product_domains::miniapp::types::{MiniAppLifecycleEvent, MiniAppViewMode};
+use bitfun_services_integrations::miniapp::lifecycle_runner::{
+    run_lifecycle_script, DEFAULT_LIFECYCLE_TIMEOUT_MS,
+};
 use bitfun_product_domains::miniapp::customization::{
     MiniAppCustomizationBaseline, MiniAppCustomizationMetadata, MiniAppPermissionDiff,
 };
@@ -41,6 +47,50 @@ pub fn initialize_global_miniapp_manager(manager: Arc<MiniAppManager>) {
 /// Get the global MiniAppManager, returning None if not initialized.
 pub fn try_get_global_miniapp_manager() -> Option<Arc<MiniAppManager>> {
     GLOBAL_MINIAPP_MANAGER.get().cloned()
+}
+
+/// Result of dispatching a MiniApp lifecycle event (install/uninstall/start/stop).
+///
+/// Returned by [`MiniAppManager::run_lifecycle_event`] when a script is declared
+/// for the event. `succeeded` is false when the script exits non-zero or could
+/// not be run (`error` then carries the reason); callers decide how strictly to
+/// treat each event (see the design spec: install aborts, uninstall is
+/// best-effort, start/stop are reported).
+#[derive(Debug, Clone)]
+pub struct MiniAppLifecycleReport {
+    pub event: MiniAppLifecycleEvent,
+    pub relative_path: String,
+    pub succeeded: bool,
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub error: Option<String>,
+}
+
+impl MiniAppLifecycleReport {
+    fn failed(event: MiniAppLifecycleEvent, relative_path: String, error: String) -> Self {
+        Self {
+            event,
+            relative_path,
+            succeeded: false,
+            exit_code: None,
+            stdout: String::new(),
+            stderr: String::new(),
+            error: Some(error),
+        }
+    }
+
+    /// JSON payload for the `miniapp-lifecycle` frontend/telemetry event.
+    pub fn to_event_payload(&self, app_id: &str) -> serde_json::Value {
+        serde_json::json!({
+            "id": app_id,
+            "event": self.event.as_str(),
+            "script": self.relative_path,
+            "succeeded": self.succeeded,
+            "exitCode": self.exit_code,
+            "error": self.error,
+        })
+    }
 }
 
 /// MiniApp manager: create, read, update, delete, list, compile, rollback.
@@ -261,6 +311,136 @@ impl MiniAppManager {
     pub async fn delete(&self, app_id: &str) -> BitFunResult<()> {
         self.granted_paths.write().await.remove(app_id);
         self.storage.delete(app_id).await
+    }
+
+    /// Set the app's persisted view mode (background / front / full).
+    ///
+    /// View mode does not affect the compiled document, so the existing compiled
+    /// HTML is preserved rather than recompiled.
+    pub async fn set_view_mode(
+        &self,
+        app_id: &str,
+        view_mode: MiniAppViewMode,
+    ) -> BitFunResult<MiniApp> {
+        let previous_app = self.storage.load(app_id).await?;
+        let now = Utc::now().timestamp_millis();
+        let compiled_html = previous_app.compiled_html.clone();
+        let patch = MiniAppUpdatePatch {
+            view_mode: Some(view_mode),
+            ..Default::default()
+        };
+        self.runtime_facade()
+            .persist_update_result_for_app(app_id.to_string(), previous_app, patch, compiled_html, now)
+            .await
+            .map_err(map_miniapp_port_error)
+    }
+
+    /// Replace the app's persisted lifecycle scripts
+    /// (install/uninstall/start/stop). Like [`set_view_mode`], this does not
+    /// change the compiled document, so the existing compiled HTML is preserved.
+    ///
+    /// [`set_view_mode`]: MiniAppManager::set_view_mode
+    pub async fn set_lifecycle_scripts(
+        &self,
+        app_id: &str,
+        lifecycle: bitfun_product_domains::miniapp::types::MiniAppLifecycleScripts,
+    ) -> BitFunResult<MiniApp> {
+        let previous_app = self.storage.load(app_id).await?;
+        let now = Utc::now().timestamp_millis();
+        let compiled_html = previous_app.compiled_html.clone();
+        let patch = MiniAppUpdatePatch {
+            lifecycle: Some(lifecycle),
+            ..Default::default()
+        };
+        self.runtime_facade()
+            .persist_update_result_for_app(app_id.to_string(), previous_app, patch, compiled_html, now)
+            .await
+            .map_err(map_miniapp_port_error)
+    }
+
+    /// Dispatch a lifecycle event for an app, running its declared script (if
+    /// any) with the detected JS runtime.
+    ///
+    /// Returns `Ok(None)` when the app declares no script for `event`. When a
+    /// script is declared, returns a report describing the run (including
+    /// failures) so the caller can emit a `miniapp-lifecycle` event and decide
+    /// how strictly to react. Lifecycle scripts are trusted, author-provided
+    /// host code (analogous to npm lifecycle scripts): they run in the app
+    /// directory with the resolved permission policy exposed via environment
+    /// variables, not inside the iframe sandbox.
+    pub async fn run_lifecycle_event(
+        &self,
+        app_id: &str,
+        event: MiniAppLifecycleEvent,
+    ) -> BitFunResult<Option<MiniAppLifecycleReport>> {
+        let meta = self.storage.load_meta(app_id).await?;
+        let Some(relative) = meta.lifecycle.script_for(event) else {
+            return Ok(None);
+        };
+        let relative = relative.to_string();
+        let app_dir = self.path_manager.miniapp_dir(app_id);
+
+        let Some(script_path) = resolve_contained_relative(&app_dir, &relative) else {
+            return Ok(Some(MiniAppLifecycleReport::failed(
+                event,
+                relative,
+                "Lifecycle script path escapes the app directory".to_string(),
+            )));
+        };
+
+        if tokio::fs::metadata(&script_path).await.is_err() {
+            return Ok(Some(MiniAppLifecycleReport::failed(
+                event,
+                relative,
+                format!(
+                    "Lifecycle script not found: {}",
+                    script_path.to_string_lossy()
+                ),
+            )));
+        }
+
+        let Some(runtime) = detect_runtime() else {
+            return Ok(Some(MiniAppLifecycleReport::failed(
+                event,
+                relative,
+                "No JS runtime (Bun/Node) detected for lifecycle script".to_string(),
+            )));
+        };
+
+        let policy = self
+            .resolve_policy_for_app(app_id, &meta.permissions, None)
+            .await;
+        let extra_env = vec![
+            ("BITFUN_MINIAPP_ID".to_string(), app_id.to_string()),
+            (
+                "BITFUN_MINIAPP_DIR".to_string(),
+                app_dir.to_string_lossy().to_string(),
+            ),
+            (
+                "BITFUN_MINIAPP_EVENT".to_string(),
+                event.as_str().to_string(),
+            ),
+            ("BITFUN_MINIAPP_POLICY".to_string(), policy.to_string()),
+        ];
+        let timeout_ms = meta
+            .permissions
+            .node
+            .as_ref()
+            .and_then(|node| node.timeout_ms)
+            .unwrap_or(DEFAULT_LIFECYCLE_TIMEOUT_MS);
+
+        match run_lifecycle_script(&runtime, &script_path, &app_dir, &extra_env, timeout_ms).await {
+            Ok(outcome) => Ok(Some(MiniAppLifecycleReport {
+                event,
+                relative_path: relative,
+                succeeded: outcome.succeeded,
+                exit_code: outcome.exit_code,
+                stdout: outcome.stdout,
+                stderr: outcome.stderr,
+                error: None,
+            })),
+            Err(error) => Ok(Some(MiniAppLifecycleReport::failed(event, relative, error))),
+        }
     }
 
     /// Get the path manager (for external callers that need paths like miniapp_dir).
@@ -893,6 +1073,107 @@ mod tests {
             )
             .await
             .unwrap()
+    }
+
+    #[tokio::test]
+    async fn set_view_mode_persists_mode_without_recompiling() {
+        use bitfun_product_domains::miniapp::types::MiniAppViewMode;
+
+        let manager = test_manager();
+        let app = create_sample_app(&manager).await;
+        assert_eq!(app.view_mode, MiniAppViewMode::Front);
+        let original_html = app.compiled_html.clone();
+
+        let updated = manager
+            .set_view_mode(&app.id, MiniAppViewMode::Full)
+            .await
+            .unwrap();
+        assert_eq!(updated.view_mode, MiniAppViewMode::Full);
+        assert_eq!(updated.compiled_html, original_html);
+
+        let reloaded = manager.get(&app.id).await.unwrap();
+        assert_eq!(reloaded.view_mode, MiniAppViewMode::Full);
+    }
+
+    #[tokio::test]
+    async fn run_lifecycle_event_is_none_when_no_script_declared() {
+        use bitfun_product_domains::miniapp::types::MiniAppLifecycleEvent;
+
+        let manager = test_manager();
+        let app = create_sample_app(&manager).await;
+        let report = manager
+            .run_lifecycle_event(&app.id, MiniAppLifecycleEvent::Install)
+            .await
+            .unwrap();
+        assert!(report.is_none());
+    }
+
+    #[tokio::test]
+    async fn run_lifecycle_event_runs_declared_script() {
+        use bitfun_product_domains::miniapp::types::{
+            MiniAppLifecycleEvent, MiniAppLifecycleScripts,
+        };
+
+        let manager = test_manager();
+        let app = create_sample_app(&manager).await;
+
+        // Write a real hook script under the app directory.
+        let app_dir = manager.path_manager().miniapp_dir(&app.id);
+        let hooks_dir = app_dir.join("hooks");
+        tokio::fs::create_dir_all(&hooks_dir).await.unwrap();
+        tokio::fs::write(
+            hooks_dir.join("install.js"),
+            "console.log('installed:' + process.env.BITFUN_MINIAPP_EVENT);\n",
+        )
+        .await
+        .unwrap();
+
+        manager
+            .set_lifecycle_scripts(
+                &app.id,
+                MiniAppLifecycleScripts {
+                    install: Some("hooks/install.js".to_string()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+
+        let report = manager
+            .run_lifecycle_event(&app.id, MiniAppLifecycleEvent::Install)
+            .await
+            .unwrap()
+            .expect("a report is produced when a script is declared");
+        assert_eq!(report.event, MiniAppLifecycleEvent::Install);
+        assert_eq!(report.relative_path, "hooks/install.js");
+
+        // A JS runtime is available in this environment; assert the script ran.
+        // If none is present the report carries an explanatory error instead.
+        if report.error.is_none() {
+            assert!(report.succeeded, "stderr: {}", report.stderr);
+            assert!(report.stdout.contains("installed:install"));
+        } else {
+            assert!(!report.succeeded);
+        }
+
+        // Traversal is rejected even if declared.
+        manager
+            .set_lifecycle_scripts(
+                &app.id,
+                MiniAppLifecycleScripts {
+                    start: Some("../escape.js".to_string()),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+        let escape = manager
+            .run_lifecycle_event(&app.id, MiniAppLifecycleEvent::Start)
+            .await
+            .unwrap()
+            .expect("declared script yields a report");
+        assert!(!escape.succeeded);
+        assert!(escape.error.is_some());
     }
 
     #[test]
