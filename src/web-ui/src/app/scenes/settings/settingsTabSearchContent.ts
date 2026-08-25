@@ -159,6 +159,16 @@ export const SETTINGS_TAB_SEARCH_CONTENT: Record<ConfigTab, readonly SettingsTab
     { ns: 'settings/memories', key: 'fields.phase1MaxConcurrency.label' },
   ],
 
+  secrets: [
+    { ns: 'settings/secrets', key: 'title' },
+    { ns: 'settings/secrets', key: 'subtitle' },
+    { ns: 'settings/secrets', key: 'sections.add.title' },
+    { ns: 'settings/secrets', key: 'sections.list.title' },
+    { ns: 'settings/secrets', key: 'fields.name.label' },
+    { ns: 'settings/secrets', key: 'fields.value.label' },
+    { ns: 'settings/secrets', key: 'fields.usageHint' },
+  ],
+
   'mcp-tools': [
     { ns: 'settings/mcp-tools', key: 'title' },
     { ns: 'settings/mcp-tools', key: 'subtitle' },

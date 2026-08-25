@@ -282,6 +282,11 @@ impl PathManager {
         self.user_root.join("data")
     }
 
+    /// Directory that holds the encrypted user-secrets vault files.
+    pub fn user_secrets_dir(&self) -> PathBuf {
+        self.user_data_dir()
+    }
+
     /// User-level managed model resources shared across workspaces.
     pub fn user_models_dir(&self) -> PathBuf {
         self.user_data_dir().join("models")

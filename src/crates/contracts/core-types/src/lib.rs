@@ -12,6 +12,7 @@ pub mod session_usage;
 pub mod speech;
 pub mod surface;
 pub mod tool_image_attachment;
+pub mod user_secret;
 pub mod worktree;
 
 pub use ai::{
@@ -43,6 +44,7 @@ pub use surface::{
     RuntimeArtifactKind, RuntimeArtifactRef, SurfaceKind, ThreadEnvironment, ThreadEnvironmentKind,
 };
 pub use tool_image_attachment::ToolImageAttachment;
+pub use user_secret::{is_valid_user_secret_name, UserSecretSummary, UserSecretUpsert};
 pub use worktree::{
     SessionExecutionTarget, SessionExecutionTargetKind, SessionExecutionTargetRequest,
     WorktreeError, WorktreeErrorCode, WorktreeLifecycle, WorktreeSessionSummary, WorktreeSettings,

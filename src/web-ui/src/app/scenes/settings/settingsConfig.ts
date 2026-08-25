@@ -18,6 +18,7 @@ export type ConfigTab =
   | 'voice-input'
   | 'review'
   | 'memories'
+  | 'secrets'
   | 'mcp-tools'
   | 'external-sources'
   | 'hooks'
@@ -254,6 +255,22 @@ export const SETTINGS_CATEGORIES: ConfigCategoryDef[] = [
           'rollout',
           'learning',
           'knowledge',
+        ],
+      },
+      {
+        id: 'secrets',
+        labelKey: 'configCenter.tabs.secrets',
+        descriptionKey: 'configCenter.tabDescriptions.secrets',
+        keywords: [
+          'secret',
+          'secrets',
+          'variable',
+          'variables',
+          'token',
+          'password',
+          'credential',
+          'api key',
+          'placeholder',
         ],
       },
       {

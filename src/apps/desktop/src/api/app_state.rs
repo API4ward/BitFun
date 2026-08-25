@@ -164,6 +164,7 @@ impl AppState {
 
         let miniapp_manager = Arc::new(MiniAppManager::new(path_manager.clone()));
         initialize_global_miniapp_manager(miniapp_manager.clone());
+        bitfun_core::user_secrets::initialize_global_user_secrets(path_manager.clone());
         match miniapp_manager.mark_stale_drafts_for_cleanup().await {
             Ok(cleanup_targets) if !cleanup_targets.is_empty() => {
                 let cleanup_manager = miniapp_manager.clone();
