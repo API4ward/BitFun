@@ -148,6 +148,8 @@ interface MiniAppState {
   loading: boolean;
   /** App IDs whose scenes are currently open in the viewport. */
   openedAppIds: string[];
+  /** App IDs resident in the background dock panel (view_mode = background). */
+  backgroundAppIds: string[];
   /** App IDs whose JS workers are currently running. */
   runningWorkerIds: string[];
   /** App IDs with an active customization surface in the MiniApp tab. */
@@ -170,6 +172,10 @@ interface MiniAppState {
   setMarketOrigin: (appId: string, origin: InstalledMarketOrigin) => void;
   openApp: (id: string) => void;
   closeApp: (id: string) => void;
+  /** Add an app to the resident background dock. */
+  openBackground: (id: string) => void;
+  /** Remove an app from the resident background dock. */
+  closeBackground: (id: string) => void;
   setRunningWorkerIds: (ids: string[]) => void;
   markWorkerRunning: (id: string) => void;
   markWorkerStopped: (id: string) => void;
@@ -188,6 +194,7 @@ export const useMiniAppStore = create<MiniAppState>((set) => ({
   apps: [],
   loading: false,
   openedAppIds: [],
+  backgroundAppIds: [],
   runningWorkerIds: [],
   customizingAppIds: [],
   composerClaims: {},
@@ -199,6 +206,7 @@ export const useMiniAppStore = create<MiniAppState>((set) => ({
       return {
         apps,
         openedAppIds: state.openedAppIds.filter((id) => validIds.has(id)),
+        backgroundAppIds: state.backgroundAppIds.filter((id) => validIds.has(id)),
         runningWorkerIds: state.runningWorkerIds.filter((id) => validIds.has(id)),
         customizingAppIds: state.customizingAppIds.filter((id) => validIds.has(id)),
         composerClaims: Object.fromEntries(
@@ -236,6 +244,16 @@ export const useMiniAppStore = create<MiniAppState>((set) => ({
         composerClaims,
       };
     }),
+  openBackground: (id) =>
+    set((state) =>
+      state.backgroundAppIds.includes(id)
+        ? state
+        : { backgroundAppIds: [...state.backgroundAppIds, id] }
+    ),
+  closeBackground: (id) =>
+    set((state) => ({
+      backgroundAppIds: state.backgroundAppIds.filter((value) => value !== id),
+    })),
   setRunningWorkerIds: (ids) => set({ runningWorkerIds: Array.from(new Set(ids)) }),
   markWorkerRunning: (id) =>
     set((state) =>

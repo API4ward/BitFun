@@ -55,6 +55,7 @@ const MiniAppGalleryView: React.FC = () => {
   const setRunningWorkerIds = useMiniAppStore((state) => state.setRunningWorkerIds);
   const markWorkerStopped = useMiniAppStore((state) => state.markWorkerStopped);
   const upsertApp = useMiniAppStore((state) => state.upsertApp);
+  const openBackground = useMiniAppStore((state) => state.openBackground);
   const { workspacePath } = useCurrentWorkspace();
   const notification = useNotification();
   const { openScene, activateScene, closeScene, openTabs } = useSceneManager();
@@ -126,8 +127,13 @@ const MiniAppGalleryView: React.FC = () => {
         return;
       }
 
-      // Background and front both use a scene tab in the main shell for now;
-      // background additionally keeps its worker resident via the nav entry.
+      if (viewMode === 'background') {
+        // Background mode stays resident in the collapsed dock panel.
+        openBackground(appId);
+        return;
+      }
+
+      // Front (default): open in a scene tab in the main shell.
       const tabId: SceneTabId = `miniapp:${appId}`;
       if (openTabIds.has(tabId)) {
         activateScene(tabId);
@@ -135,7 +141,7 @@ const MiniAppGalleryView: React.FC = () => {
         openScene(tabId);
       }
     },
-    [apps, openTabIds, activateScene, openScene]
+    [apps, openBackground, openTabIds, activateScene, openScene]
   );
 
   const handleStopRunning = useCallback(

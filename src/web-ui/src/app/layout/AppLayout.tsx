@@ -54,6 +54,9 @@ const ToolbarMode = lazy(() =>
 const FloatingMiniChat = lazy(() =>
   import('./FloatingMiniChat').then(module => ({ default: module.FloatingMiniChat }))
 );
+const MiniAppBackgroundDock = lazy(() =>
+  import('../scenes/miniapps/components/MiniAppBackgroundDock')
+);
 const AboutDialog = lazy(() =>
   import('../components/AboutDialog').then(module => ({ default: module.AboutDialog }))
 );
@@ -783,6 +786,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ className = '' }) => {
             <FloatingMiniChat />
           </Suspense>
         )}
+
+        {/* Resident dock for background view-mode MiniApps */}
+        <Suspense fallback={null}>
+          <MiniAppBackgroundDock />
+        </Suspense>
       </div>
 
       {/* Dialogs (previously owned by TitleBar) */}
