@@ -363,6 +363,8 @@ impl MiniAppStorage {
             ai_context: meta.ai_context,
             runtime: meta.runtime,
             runtime_profile: meta.runtime_profile,
+            view_mode: meta.view_mode,
+            lifecycle: meta.lifecycle,
             i18n: meta.i18n,
         })
     }
@@ -747,6 +749,8 @@ impl MiniAppStorage {
             ai_context: meta.ai_context,
             runtime: meta.runtime,
             runtime_profile: meta.runtime_profile,
+            view_mode: meta.view_mode,
+            lifecycle: meta.lifecycle,
             i18n: meta.i18n,
         })
     }
@@ -1846,6 +1850,8 @@ mod tests {
             ai_context: None,
             runtime: Default::default(),
             runtime_profile: Default::default(),
+            view_mode: Default::default(),
+            lifecycle: Default::default(),
             i18n: None,
         }
     }

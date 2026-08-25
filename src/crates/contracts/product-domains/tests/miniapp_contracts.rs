@@ -2308,6 +2308,8 @@ fn sample_miniapp_for_lifecycle(source: MiniAppSource) -> MiniApp {
         ai_context: None,
         runtime: MiniAppRuntimeState::default(),
         runtime_profile: Default::default(),
+        view_mode: Default::default(),
+        lifecycle: Default::default(),
         i18n: None,
     }
 }
