@@ -426,8 +426,8 @@ mod tests {
 
     use super::{
         build_builtin_seed_artifacts, builtin_content_hash, seed_builtin_miniapp_with_host,
-        BuiltinInstallMarker, BuiltinMiniAppSeedBundleRequest, BuiltinMiniAppSeedHost,
-        BuiltinMiniAppSeedOutcome, BuiltinSeedArtifacts, BUILTIN_APPS,
+        BuiltinInstallMarker, BuiltinMiniAppBundle, BuiltinMiniAppSeedBundleRequest,
+        BuiltinMiniAppSeedHost, BuiltinMiniAppSeedOutcome, BuiltinSeedArtifacts, BUILTIN_APPS,
     };
     use crate::miniapp::ports::{MiniAppPortFuture, MiniAppPortResult};
     use std::sync::{Arc, Mutex};

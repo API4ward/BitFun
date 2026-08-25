@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const runnerPath = new URL('../scripts/kernel-runner.js', import.meta.url);
+const runnerPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'kernel-runner.js');
 const {
   DEFAULT_LISTEN_PORT,
   MAX_LOGS,
