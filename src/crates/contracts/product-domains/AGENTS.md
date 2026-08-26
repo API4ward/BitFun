@@ -52,6 +52,7 @@ Use the smallest matching check for the changed surface:
 cargo test -p bitfun-product-domains --no-default-features
 cargo test -p bitfun-product-domains --features product-full
 pnpm run test:netbreaker
+pnpm run test:netbreaker2
 node scripts/check-core-boundaries.mjs
 cargo check -p bitfun-core --features product-full
 ```

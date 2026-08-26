@@ -1,0 +1,125 @@
+{
+  "id": "builtin-netbreaker2",
+  "name": "NetBreaker2",
+  "description": "Local Clash/mihomo TUN client: start and stop a virtual NIC, show kernel/TUN/elevation status, ping connectivity, and keep the last 10 log lines.",
+  "icon": "Globe",
+  "category": "developer",
+  "tags": [
+    "built-in",
+    "network",
+    "clash",
+    "tun"
+  ],
+  "version": 1,
+  "created_at": 0,
+  "updated_at": 0,
+  "view_mode": "front",
+  "permissions": {
+    "fs": {
+      "read": [
+        "{appdata}"
+      ],
+      "write": [
+        "{appdata}"
+      ]
+    },
+    "shell": {
+      "allow": [
+        "mihomo",
+        "clash",
+        "clash-meta",
+        "mihomo.exe",
+        "clash.exe",
+        "pkexec",
+        "osascript",
+        "powershell"
+      ]
+    },
+    "net": {
+      "allow": [
+        "api.github.com",
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com"
+      ]
+    },
+    "node": {
+      "enabled": true,
+      "max_memory_mb": 256,
+      "timeout_ms": 120000
+    }
+  },
+  "lifecycle": {
+    "install": "hooks/install.js",
+    "uninstall": "hooks/uninstall.js",
+    "start": "hooks/start.js",
+    "stop": "hooks/stop.js"
+  },
+  "scripts": [
+    {
+      "name": "start",
+      "path": "scripts/start.js",
+      "description": "Start the Clash TUN connection (prompts for elevation when needed)"
+    },
+    {
+      "name": "stop",
+      "path": "scripts/stop.js",
+      "description": "Stop the Clash kernel and release the TUN device"
+    },
+    {
+      "name": "ping",
+      "path": "scripts/ping.js",
+      "description": "Probe the mixed inbound, controller, and a public TCP endpoint"
+    },
+    {
+      "name": "ensure-kernel",
+      "path": "scripts/ensure-kernel.js",
+      "description": "Locate or download a user-local mihomo kernel into scripts/"
+    },
+    {
+      "name": "elevate",
+      "path": "scripts/elevate.js",
+      "description": "Request an explicit privilege prompt for TUN (pkexec / UAC)"
+    },
+    {
+      "name": "clash",
+      "path": "scripts/clash.js",
+      "description": "Locate the bundled Clash/mihomo kernel, or pass through arguments to it"
+    }
+  ],
+  "ai_context": null,
+  "i18n": {
+    "locales": {
+      "zh-CN": {
+        "name": "NetBreaker2",
+        "description": "本地 Clash/mihomo TUN 客户端：启动/停止虚拟网卡、显示内核/TUN/提权状态、连通性探测，并保留最近 10 条日志。",
+        "tags": [
+          "内置",
+          "网络",
+          "clash",
+          "tun"
+        ]
+      },
+      "en-US": {
+        "name": "NetBreaker2",
+        "description": "Local Clash/mihomo TUN client: start and stop a virtual NIC, show kernel/TUN/elevation status, ping connectivity, and keep the last 10 log lines.",
+        "tags": [
+          "built-in",
+          "network",
+          "clash",
+          "tun"
+        ]
+      },
+      "zh-TW": {
+        "name": "NetBreaker2",
+        "description": "本機 Clash/mihomo TUN 用戶端：啟動/停止虛擬網卡、顯示核心/TUN/提權狀態、連通性探測，並保留最近 10 條日誌。",
+        "tags": [
+          "內建",
+          "網路",
+          "clash",
+          "tun"
+        ]
+      }
+    }
+  }
+}

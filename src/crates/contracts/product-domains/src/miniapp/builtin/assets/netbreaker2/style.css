@@ -1,0 +1,244 @@
+/* NetBreaker2 — Clash TUN control panel.
+ * Surfaces inherit BitFun host tokens so the panel tracks light/dark.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body, html { margin: 0; padding: 0; height: 100%; }
+[hidden] { display: none !important; }
+
+:root {
+  --nb-bg: var(--bitfun-bg, #0e0e10);
+  --nb-surface: var(--bitfun-bg-secondary, #1c1c1f);
+  --nb-surface-2: var(--bitfun-element-bg, rgba(255,255,255,0.06));
+  --nb-border: var(--bitfun-border-subtle, rgba(255,255,255,0.10));
+  --nb-text: var(--bitfun-text, #e8e8e8);
+  --nb-text-soft: var(--bitfun-text-secondary, #b0b0b0);
+  --nb-text-mute: var(--bitfun-text-muted, #858585);
+  --nb-accent: var(--bitfun-accent, #60a5fa);
+  --nb-accent-hover: var(--bitfun-accent-hover, #3b82f6);
+  --nb-ok: var(--bitfun-success, #34d399);
+  --nb-warn: var(--bitfun-warning, #f59e0b);
+  --nb-err: var(--bitfun-error, #ef4444);
+  --nb-radius: var(--bitfun-radius, 8px);
+  --nb-sans: var(--bitfun-font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  --nb-mono: var(--bitfun-font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+}
+
+body {
+  font-family: var(--nb-sans);
+  font-size: 14px;
+  color: var(--nb-text);
+  background: var(--nb-bg);
+}
+
+.nb {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 20px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand__icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--nb-accent);
+  background: var(--nb-surface-2);
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-radius);
+}
+
+.brand__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.brand__subtitle {
+  margin: 2px 0 0;
+  color: var(--nb-text-mute);
+  font-size: 12px;
+}
+
+.status {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--nb-border);
+  background: var(--nb-surface);
+  color: var(--nb-text-soft);
+}
+
+.status--ok { color: var(--nb-ok); border-color: color-mix(in srgb, var(--nb-ok) 45%, transparent); }
+.status--err { color: var(--nb-err); border-color: color-mix(in srgb, var(--nb-err) 45%, transparent); }
+.status--warn { color: var(--nb-warn); border-color: color-mix(in srgb, var(--nb-warn) 45%, transparent); }
+
+.banner {
+  padding: 10px 12px;
+  border-radius: var(--nb-radius);
+  border: 1px solid color-mix(in srgb, var(--nb-err) 40%, var(--nb-border));
+  background: color-mix(in srgb, var(--nb-err) 10%, var(--nb-surface));
+}
+
+.banner--warn {
+  border-color: color-mix(in srgb, var(--nb-warn) 40%, var(--nb-border));
+  background: color-mix(in srgb, var(--nb-warn) 10%, var(--nb-surface));
+}
+
+.banner strong { display: block; margin-bottom: 4px; }
+.banner p { margin: 0; color: var(--nb-text-soft); font-size: 13px; }
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.card {
+  background: var(--nb-surface);
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-radius);
+  padding: 14px;
+}
+
+.card__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fact__label {
+  font-size: 12px;
+  color: var(--nb-text-mute);
+}
+
+.fact strong,
+#listen-port {
+  font-family: var(--nb-mono);
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  word-break: break-all;
+}
+
+.port-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--nb-text-soft);
+  font-size: 12px;
+}
+
+.field input {
+  width: 120px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--nb-border);
+  background: var(--nb-bg);
+  color: var(--nb-text);
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--nb-border);
+  background: var(--nb-surface-2);
+  color: var(--nb-text);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font: inherit;
+}
+
+.btn:hover:not(:disabled) { border-color: var(--nb-accent); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn--primary {
+  background: color-mix(in srgb, var(--nb-accent) 18%, var(--nb-surface));
+  border-color: color-mix(in srgb, var(--nb-accent) 45%, var(--nb-border));
+  color: var(--nb-text);
+}
+
+.btn--ghost { color: var(--nb-text-soft); }
+
+.hint {
+  margin: 10px 0 0;
+  color: var(--nb-text-mute);
+  font-size: 12px;
+}
+
+.logs-card {
+  flex: 1;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+  flex: 1;
+  font-family: var(--nb-mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.logs li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--nb-border);
+  color: var(--nb-text-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.logs__empty { color: var(--nb-text-mute); border: 0; }
+.logs .lvl-error { color: var(--nb-err); }
+.logs .lvl-ok { color: var(--nb-ok); }

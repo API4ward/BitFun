@@ -236,6 +236,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn prepare_builtin_seed_bundle_files_writes_extra_files() {
+        let dir = scratch_dir("extra");
+        let app = BuiltinMiniAppBundle {
+            extra_files: &[
+                ("hooks/install.js", "console.log('install')"),
+                ("scripts/start.js", "console.log('start')"),
+            ],
+            ..BUILTIN_APPS[0]
+        };
+
+        prepare_builtin_seed_bundle_files(&dir, &app, 1234)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            tokio::fs::read_to_string(dir.join("hooks").join("install.js"))
+                .await
+                .unwrap(),
+            "console.log('install')"
+        );
+        assert_eq!(
+            tokio::fs::read_to_string(dir.join("scripts").join("start.js"))
+                .await
+                .unwrap(),
+            "console.log('start')"
+        );
+
+        let _ = tokio::fs::remove_dir_all(dir).await;
+    }
+
+    #[tokio::test]
     async fn prepare_builtin_seed_bundle_files_writes_netbreaker_scripts() {
         let dir = scratch_dir("netbreaker");
         let app = BUILTIN_APPS
@@ -256,6 +287,34 @@ mod tests {
             .unwrap();
         assert!(meta.contains("builtin-netbreaker"));
         assert!(meta.contains("scripts/start.js"));
+
+        let _ = tokio::fs::remove_dir_all(dir).await;
+    }
+
+    #[tokio::test]
+    async fn prepare_builtin_seed_bundle_files_writes_netbreaker2_scripts() {
+        let dir = scratch_dir("netbreaker2");
+        let app = BUILTIN_APPS
+            .iter()
+            .find(|app| app.id == "builtin-netbreaker2")
+            .expect("NetBreaker2 should be registered");
+
+        prepare_builtin_seed_bundle_files(&dir, app, 1234)
+            .await
+            .unwrap();
+
+        assert!(dir.join("scripts").join("kernel-runner.js").exists());
+        assert!(dir.join("scripts").join("start.js").exists());
+        assert!(dir.join("scripts").join("elevate.js").exists());
+        assert!(dir.join("scripts").join("elevate-launch.sh").exists());
+        assert!(dir.join("hooks").join("install.js").exists());
+        let meta = tokio::fs::read_to_string(dir.join("meta.json"))
+            .await
+            .unwrap();
+        assert!(meta.contains("builtin-netbreaker2"));
+        assert!(meta.contains("scripts/elevate.js"));
+        assert!(!dir.join("scripts").join("mihomo").exists());
+        assert!(!dir.join("scripts").join("clash").exists());
 
         let _ = tokio::fs::remove_dir_all(dir).await;
     }
