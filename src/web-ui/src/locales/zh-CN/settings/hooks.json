@@ -18,10 +18,10 @@
   },
   "locations": {
     "title": "Hook 声明位置",
-    "description": "Hook 声明在 hooks.json 文件中，不在本设置文档里。两个层级是叠加关系，用户层优先执行。修改后无需重启 BitFun。",
+    "description": "Hook 声明在 hooks.json 文件中，不在本设置文档里。两个层级是叠加关系，用户层优先执行。修改后无需重启 Api4Ward。",
     "userFile": {
       "label": "用户 Hook 文件",
-      "description": "BitFun 用户配置目录下的 config/hooks.json（Linux 为 ~/.config/bitfun，macOS 为 ~/Library/Application Support/bitfun，Windows 为 %APPDATA%\\bitfun）。"
+      "description": "Api4Ward 用户配置目录下的 config/hooks.json（Linux 为 ~/.config/bitfun，macOS 为 ~/Library/Application Support/bitfun，Windows 为 %APPDATA%\\bitfun）。"
     },
     "projectFile": {
       "label": "项目 Hook 文件",
@@ -30,7 +30,7 @@
   },
   "imports": {
     "title": "已导入的 Hooks",
-    "description": "先审阅兼容的 Claude Code 和 Codex 命令 Hook，再在此管理 BitFun 的本地快照。",
+    "description": "先审阅兼容的 Claude Code 和 Codex 命令 Hook，再在此管理 Api4Ward 的本地快照。",
     "masterDisabled": "导入内容会被保留，但总开关关闭时不会运行。",
     "refresh": "刷新",
     "remoteUnsupported": "远程工作区暂不支持导入 Hooks。",
@@ -72,10 +72,10 @@
     "storeInvalid": "导入 Hook 状态需要修复",
     "reset": "重置托管状态",
     "removeTitle": "移除已导入的 Hooks？",
-    "removeSourceUntouched": "只会移除 BitFun 的托管副本，不会修改 Claude Code 或 Codex 的来源文件。",
+    "removeSourceUntouched": "只会移除 Api4Ward 的托管副本，不会修改 Claude Code 或 Codex 的来源文件。",
     "removeConfirm": "移除托管副本",
     "resetTitle": "重置无效的导入 Hook 状态？",
-    "resetWarning": "这会移除当前范围内无效的 BitFun 托管索引，不会修改来源应用的文件。",
+    "resetWarning": "这会移除当前范围内无效的 Api4Ward 托管索引，不会修改来源应用的文件。",
     "resetConfirm": "重置托管状态"
   },
   "compatibility": {

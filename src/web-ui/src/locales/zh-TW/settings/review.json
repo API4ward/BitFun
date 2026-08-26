@@ -4,7 +4,7 @@
   "loading": "正在載入審核設定...",
   "desktopOnly": {
     "title": "僅桌面端可用",
-    "description": "Review 容量設定僅在 BitFun 桌面應用中可用；目前介面不支援啟動 Review。"
+    "description": "Review 容量設定僅在 Api4Ward 桌面應用中可用；目前介面不支援啟動 Review。"
   },
   "error": {
     "title": "審核設定暫不可用",

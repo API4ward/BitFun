@@ -181,7 +181,7 @@
     }
   },
   "messages": {
-    "unsupported": "语音输入仅在 BitFun 桌面端中可用。",
+    "unsupported": "语音输入仅在 Api4Ward 桌面端中可用。",
     "loadFailed": "加载语音输入设置失败",
     "saveSuccess": "语音输入设置已保存",
     "saveFailed": "保存语音输入设置失败",

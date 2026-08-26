@@ -505,7 +505,11 @@
     "viewDetails": "View models.dev catalog details",
     "description": "Catalog status used for reasoning preset provider and model bindings. It is checked automatically when model settings open.",
     "activeSource": "Active source",
-    "source": { "cache": "Cache", "bundle": "Built-in snapshot", "empty": "Unavailable" },
+    "source": {
+      "cache": "Cache",
+      "bundle": "Built-in snapshot",
+      "empty": "Unavailable"
+    },
     "catalogSize": "Catalog size",
     "catalogSizeValue": "{{providers}} providers · {{models}} reasoning models",
     "cacheUpdatedAt": "Cache write time",
@@ -522,7 +526,7 @@
     "reveal": "Show in folder",
     "revealFailed": "Unable to open the cache folder",
     "offlineTitle": "Updating without network access",
-    "offlineDescription": "On a device with internet access, download the original models.dev file, name it catalog.json, and place it in the cache directory above. Restart BitFun to apply it; Update now may overwrite this file.",
+    "offlineDescription": "On a device with internet access, download the original models.dev file, name it catalog.json, and place it in the cache directory above. Restart Api4Ward to apply it; Update now may overwrite this file.",
     "downloadOriginal": "Download original catalog",
     "openCacheDirectory": "Open cache directory"
   },

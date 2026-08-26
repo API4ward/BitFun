@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "BitFun",
+  "productName": "Api4Ward",
   "identifier": "com.bitfun.desktop",
   "build": {
     "beforeDevCommand": "pnpm run dev:web",

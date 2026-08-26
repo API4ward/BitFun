@@ -69,7 +69,7 @@
     }
   },
   "fileDialog": {
-    "pluginPackage": "BitFun Plugin Package"
+    "pluginPackage": "Api4Ward Plugin Package"
   },
   "editor": {
     "goToDefinition": "Go to Definition",

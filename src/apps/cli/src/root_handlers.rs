@@ -856,7 +856,7 @@ pub(crate) fn handle_health_command() -> Result<()> {
     let (_, services) = bitfun_core::product_runtime::build_local_runtime_services(&workspace, 16)?;
     let product_runtime = crate::product_assembly::assemble_cli_runtime_parts(services)?;
 
-    println!("BitFun CLI health");
+    println!("Api4Ward CLI health");
     println!("Version: {}", env!("CARGO_PKG_VERSION"));
     println!(
         "Product runtime: {} assembly-ready",

@@ -497,7 +497,7 @@ impl McpSelectorState {
                                 if item.external {
                                     "[External] "
                                 } else {
-                                    "[BitFun] "
+                                    "[Api4Ward] "
                                 },
                                 theme.style(StyleKind::Muted),
                             ),
@@ -676,7 +676,7 @@ mod tests {
             server_type: "local".to_string(),
             status: "Confirmation required".to_string(),
             tool_count: 0,
-            source_label: if external { "OpenCode" } else { "BitFun" }.to_string(),
+            source_label: if external { "OpenCode" } else { "Api4Ward" }.to_string(),
             external,
             detail: "Safe summary".to_string(),
             action,
@@ -826,7 +826,7 @@ mod tests {
             .join("\n");
 
         assert!(
-            rendered.contains("[BitFun] github"),
+            rendered.contains("[Api4Ward] github"),
             "native row missing: {rendered:?}"
         );
         assert!(

@@ -137,7 +137,7 @@ fn interactive_startup_survives_resize_multiline_input_and_emits_cleanup() {
         "interactive startup did not render the multiline input tail",
     );
     assert!(
-        !process.output().contains("Welcome to BitFun CLI!"),
+        !process.output().contains("Welcome to Api4Ward CLI!"),
         "multiline input was submitted instead of remaining in the startup editor"
     );
 
@@ -400,7 +400,7 @@ fn export_dialog_writes_markdown_under_the_local_cli_directory() {
         "{markdown}"
     );
     assert!(markdown.contains("## Assistant"), "{markdown}");
-    assert!(!markdown.contains("Welcome to BitFun CLI!"), "{markdown}");
+    assert!(!markdown.contains("Welcome to Api4Ward CLI!"), "{markdown}");
 }
 
 fn session_markdown_exports(workspace: &std::path::Path) -> Vec<std::path::PathBuf> {

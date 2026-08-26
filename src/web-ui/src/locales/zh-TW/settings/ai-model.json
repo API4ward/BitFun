@@ -505,7 +505,11 @@
     "viewDetails": "查看 models.dev 目錄詳情",
     "description": "用於推理預設供應商和模型綁定的目錄狀態。開啟模型設定時會自動檢查更新。",
     "activeSource": "目前來源",
-    "source": { "cache": "快取", "bundle": "內建快照", "empty": "無法使用" },
+    "source": {
+      "cache": "快取",
+      "bundle": "內建快照",
+      "empty": "無法使用"
+    },
     "catalogSize": "目錄規模",
     "catalogSizeValue": "{{providers}} 個供應商 · {{models}} 個推理模型",
     "cacheUpdatedAt": "快取寫入時間",
@@ -522,7 +526,7 @@
     "reveal": "在資料夾中顯示",
     "revealFailed": "無法開啟快取所在資料夾",
     "offlineTitle": "無法連線時如何更新",
-    "offlineDescription": "在可連線的裝置上下載 models.dev 原始檔案，將其命名為 catalog.json 並放入上方快取目錄。替換後重新啟動 BitFun 即可生效；點擊立即更新可能會覆蓋該檔案。",
+    "offlineDescription": "在可連線的裝置上下載 models.dev 原始檔案，將其命名為 catalog.json 並放入上方快取目錄。替換後重新啟動 Api4Ward 即可生效；點擊立即更新可能會覆蓋該檔案。",
     "downloadOriginal": "下載原始目錄",
     "openCacheDirectory": "開啟快取目錄"
   },

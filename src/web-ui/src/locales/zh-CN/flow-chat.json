@@ -308,7 +308,7 @@
       "legacyModel": "这个会话创建时尚未记录逐轮模型名称，因此报告无法确认精确模型。",
       "inferredModel": "旧会话缺少逐轮模型名称，已根据会话的模型设置推测。",
       "filesUnavailable": "当前会话没有找到本地快照或可识别的文件编辑工具记录。",
-      "filesNoRecordedChanges": "BitFun 没有检测到当前会话中的文件变更。如果本次会话没有编辑文件，这是正常状态。",
+      "filesNoRecordedChanges": "Api4Ward 没有检测到当前会话中的文件变更。如果本次会话没有编辑文件，这是正常状态。",
       "filesRemoteUnavailable": "没有找到这个远程会话的快照汇总；如果工具记录能识别到写入、编辑或删除文件，仍会显示文件行。",
       "filesNotTracked": "当前会话没有找到本地快照或可识别的文件编辑工具记录。",
       "fileTurnIndexes": "当文件活动来自汇总而不是逐轮操作记录时，不会记录轮次。",
@@ -454,7 +454,7 @@
     "more": "更多会话",
     "restoreMain": "恢复主窗口",
     "inUseTitle": "会话已在其他实例中打开",
-    "inUseMessage": "该会话已在另一个 BitFun 实例中打开。请先在那里关闭，然后重试。",
+    "inUseMessage": "该会话已在另一个 Api4Ward 实例中打开。请先在那里关闭，然后重试。",
     "surfaceSwitchDroppedTitle": "消息未发送",
     "surfaceSwitchDropped": "消息尚未发出时设备已切换，且该会话的队列已满。请重新发送。",
     "retry": "重试"
@@ -649,7 +649,7 @@
       "menuLabel": "这个任务在哪运行",
       "sessionScope": "仅当前任务",
       "localSection": "本机",
-      "localDescription": "在当前 BitFun 应用中运行",
+      "localDescription": "在当前 Api4Ward 应用中运行",
       "sshSection": "SSH",
       "loading": "正在加载目标…",
       "noSshTargets": "没有已保存的 SSH 目标",
@@ -664,8 +664,8 @@
       "createFailed": "无法创建远程任务。请重新检查目标后再试。",
       "remoteTarget": "远程设备",
       "transferInProgress": "正在准备目标并传输项目…",
-      "cliInstallStarted": "正在远程设备上准备 BitFun {{version}}…",
-      "cliInstallSucceeded": "BitFun {{version}} 已在远程设备上就绪。",
+      "cliInstallStarted": "正在远程设备上准备 Api4Ward {{version}}…",
+      "cliInstallSucceeded": "Api4Ward {{version}} 已在远程设备上就绪。",
       "cliInstallFailed": "无法准备远程运行环境。请检查 SSH 连接后重试。",
       "cliInstallInProgress": "正在准备远程运行环境…",
       "cliInstallUnknownVersion": "所需版本",
@@ -815,7 +815,7 @@
     "noMatchingCommand": "没有匹配的命令",
     "externalCommandContextUnsupported": "运行此委派命令前，请先移除输入框中的附件和引用。",
     "nativeCommandChoiceNotSaved": "本次仍会执行该命令，但未能保存这次冲突选择。",
-    "nativeCommandReconfirmationRequired": "之前选择的外部命令已不可用。请从斜杠菜单中选择 BitFun 命令后再执行。",
+    "nativeCommandReconfirmationRequired": "之前选择的外部命令已不可用。请从斜杠菜单中选择 Api4Ward 命令后再执行。",
     "selectHint": "↑↓ 选择 · Enter 确认 · Esc 取消",
     "current": "当前",
     "commandStatus": {
@@ -1046,7 +1046,7 @@
     },
     "decisionGate": {
       "title": "修复前确认待决策项",
-      "description": "请先选择每个待决策项的处理方案，BitFun 会按你的选择开始修改。",
+      "description": "请先选择每个待决策项的处理方案，Api4Ward 会按你的选择开始修改。",
       "supplementLabel": "补充要求",
       "supplementPlaceholder": "可选：补充约束、范围边界或实现偏好。",
       "missingSelection": "开始前需要先为每个待决策项选择一个方案。",
@@ -1122,8 +1122,8 @@
     },
     "resultRecovery": {
       "title": "严格审核需要补全结果",
-      "missingSubmitCodeReview": "审核已结束，但 BitFun 没有收到可确认的结构化结果。继续会保留已完成的审核工作，并补交缺失的审核报告。",
-      "invalidSubmitCodeReview": "审核返回了 BitFun 无法读取的结果。继续会保留已完成的审核工作，并修复报告。",
+      "missingSubmitCodeReview": "审核已结束，但 Api4Ward 没有收到可确认的结构化结果。继续会保留已完成的审核工作，并补交缺失的审核报告。",
+      "invalidSubmitCodeReview": "审核返回了 Api4Ward 无法读取的结果。继续会保留已完成的审核工作，并修复报告。",
       "wrongReviewMode": "审核返回了标准审核结果。继续会保留已完成的审核工作，并提交严格审核报告。"
     },
     "capacityQueue": {
@@ -1134,7 +1134,7 @@
       "detail": "容量等待不计入审核运行时间。",
       "activeReviewerDetail": "等待中的审核工作会在已有审核工作释放容量后开始。容量等待不计入审核运行时间。",
       "longLaunchBatchWaitDetail": "本次审核等待时间已超过配置的容量窗口，因为前序审核工作仍在运行。你可以继续等待、暂停等待、取消等待中的审核，或打开审核设置。",
-      "providerDetail": "BitFun 正在等待临时模型容量，这段等待不计入审核运行时间。",
+      "providerDetail": "Api4Ward 正在等待临时模型容量，这段等待不计入审核运行时间。",
       "reason": "原因：{{reason}}",
       "elapsed": "已等待 {{elapsed}}",
       "elapsedWithMax": "已等待 {{elapsed}} / {{max}}",
@@ -1148,12 +1148,12 @@
         "temporaryOverload": "临时过载"
       },
       "reasonDetails": {
-        "providerRateLimit": "模型提供方对本次审核请求触发了限流。BitFun 会在容量恢复后重试。",
-        "providerConcurrencyLimit": "模型提供方拒绝了新的并发审核请求。BitFun 会在容量恢复后重试。",
-        "retryAfter": "模型提供方要求 BitFun 等待一段时间后再重试本次审核请求。",
+        "providerRateLimit": "模型提供方对本次审核请求触发了限流。Api4Ward 会在容量恢复后重试。",
+        "providerConcurrencyLimit": "模型提供方拒绝了新的并发审核请求。Api4Ward 会在容量恢复后重试。",
+        "retryAfter": "模型提供方要求 Api4Ward 等待一段时间后再重试本次审核请求。",
         "localConcurrencyCap": "当前严格审核容量已满。等待中的审核工作会在活跃工作完成后开始。",
         "launchBatchBlocked": "前序审核工作仍在运行。等待可以保持计划中的审核顺序，避免后续工作抢跑。",
-        "temporaryOverload": "模型提供方暂时过载。BitFun 会在容量可用后重试。"
+        "temporaryOverload": "模型提供方暂时过载。Api4Ward 会在容量可用后重试。"
       },
       "sessionBusy": "当前会话较忙，可暂停严格审核或稍后继续。",
       "stopHint": "可使用停止来中断本次审核。",
@@ -1208,7 +1208,7 @@
     "windowTitle": "审核方案",
     "eyebrow": "审核方案",
     "title": "开始本次审核？",
-    "body": "BitFun 会先直接审核本次变更，仅在证据确实需要时增加补充检查。继续前可确认目标范围、预计耗时和只读边界。",
+    "body": "Api4Ward 会先直接审核本次变更，仅在证据确实需要时增加补充检查。继续前可确认目标范围、预计耗时和只读边界。",
     "readonlyLabel": "只读",
     "readonly": "审核不会修改文件。",
     "sessionConcurrencyTitle": "当前会话较忙",
@@ -1401,7 +1401,7 @@
     "dialogNotFound": "未找到对话数据",
     "containerNotFound": "导出容器未找到",
     "generateFailed": "生成图片失败",
-    "fileNamePrefix": "BitFun对话",
+    "fileNamePrefix": "Api4Ward对话",
     "exportSuccess": "图片已导出：{{filePath}}",
     "exportSuccessPrefix": "图片已导出：",
     "exportFailed": "导出图片失败，请重试",
@@ -1541,7 +1541,7 @@
       "openSourceFailed": "打开生成式 UI 源码编辑器失败"
     },
     "generativeWidget": {
-      "exportFileNamePrefix": "BitFun组件"
+      "exportFileNamePrefix": "Api4Ward组件"
     },
     "git": {
       "title": "Git",
@@ -1606,7 +1606,7 @@
       "title": "部署页面",
       "deployingShort": "…",
       "untitled": "（未命名）",
-      "deployFailed": "无法部署 BitFun Page 版本",
+      "deployFailed": "无法部署 Api4Ward Page 版本",
       "openFailed": "无法为该页面创建安全访问链接。",
       "labelSlug": "slug",
       "labelVersion": "version",
@@ -1617,7 +1617,7 @@
       "title": "发布页面",
       "publishingShort": "…",
       "untitled": "（未命名）",
-      "publishFailed": "无法发布 BitFun Page",
+      "publishFailed": "无法发布 Api4Ward Page",
       "openFailed": "无法为该页面创建安全访问链接。",
       "labelSlug": "slug",
       "labelVersion": "version",
@@ -1797,7 +1797,7 @@
       "appLabel": "应用",
       "targetLabel": "目标",
       "permissionDenied": "需要桌面控制权限",
-      "permissionDeniedHint": "BitFun 需要 macOS「辅助功能」和「屏幕录制」权限才能控制其他应用。请打开系统设置，为 BitFun 授权后重试。",
+      "permissionDeniedHint": "Api4Ward 需要 macOS「辅助功能」和「屏幕录制」权限才能控制其他应用。请打开系统设置，为 Api4Ward 授权后重试。",
       "openSettings": "打开系统设置",
       "openSettingsFailed": "无法打开系统设置"
     },
@@ -2291,7 +2291,7 @@
         "saveSuccess": "审核报告已导出。",
         "saveFailed": "导出审核报告失败。",
         "saveDialogTitle": "导出审核报告",
-        "fileNamePrefix": "BitFun-审核",
+        "fileNamePrefix": "Api4Ward-审核",
         "editorTitle": "审核报告"
       },
       "reviewModes": {
@@ -2447,7 +2447,7 @@
     },
     "sourceTooltip": {
       "models_dev": "根据 models.dev 的模型元数据自动生成",
-      "adapter_fallback": "BitFun 为此模型适配器内置的预设",
+      "adapter_fallback": "Api4Ward 为此模型适配器内置的预设",
       "model_config": "在此模型的自定义配置中定义"
     }
   },

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "BitFun Installer",
+  "productName": "Api4Ward Installer",
   "identifier": "com.bitfun.installer",
   "build": {
     "beforeDevCommand": "pnpm run dev",
@@ -31,7 +31,7 @@
     "windows": [
       {
         "label": "installer",
-        "title": "Install BitFun",
+        "title": "Install Api4Ward",
         "width": 760,
         "height": 560,
         "minWidth": 700,

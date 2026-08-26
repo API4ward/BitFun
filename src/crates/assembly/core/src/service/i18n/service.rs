@@ -324,13 +324,13 @@ mod tests {
             service
                 .translate_with_locale(&LocaleId::EnUS, "app-name", None)
                 .await,
-            "BitFun"
+            "Api4Ward"
         );
         assert_eq!(
             service
                 .translate_with_locale(&LocaleId::ZhTW, "app-name", None)
                 .await,
-            "BitFun"
+            "Api4Ward"
         );
     }
 

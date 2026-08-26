@@ -505,7 +505,11 @@
     "viewDetails": "查看 models.dev 目录详情",
     "description": "用于推理预设供应商和模型绑定的目录状态。打开模型设置时会自动检查更新。",
     "activeSource": "当前来源",
-    "source": { "cache": "缓存", "bundle": "内置快照", "empty": "不可用" },
+    "source": {
+      "cache": "缓存",
+      "bundle": "内置快照",
+      "empty": "不可用"
+    },
     "catalogSize": "目录规模",
     "catalogSizeValue": "{{providers}} 个供应商 · {{models}} 个推理模型",
     "cacheUpdatedAt": "缓存写入时间",
@@ -522,7 +526,7 @@
     "reveal": "在文件夹中显示",
     "revealFailed": "无法打开缓存所在文件夹",
     "offlineTitle": "无法联网时如何更新",
-    "offlineDescription": "在可联网的设备上下载 models.dev 原始文件，将其命名为 catalog.json 并放入上方缓存目录。替换后重启 BitFun 即可生效；点击立即更新可能会覆盖该文件。",
+    "offlineDescription": "在可联网的设备上下载 models.dev 原始文件，将其命名为 catalog.json 并放入上方缓存目录。替换后重启 Api4Ward 即可生效；点击立即更新可能会覆盖该文件。",
     "downloadOriginal": "下载原始目录",
     "openCacheDirectory": "打开缓存目录"
   },

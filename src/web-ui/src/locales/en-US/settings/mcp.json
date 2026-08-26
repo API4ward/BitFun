@@ -6,8 +6,8 @@
     "serverList": {
       "title": "MCP Server List",
       "description": "MCP servers and JSON configuration",
-      "desktopUnavailable": "Manage BitFun MCP in Desktop.",
-      "remoteUnavailable": "BitFun MCP management is unavailable during a remote connection.",
+      "desktopUnavailable": "Manage Api4Ward MCP in Desktop.",
+      "remoteUnavailable": "Api4Ward MCP management is unavailable during a remote connection.",
       "loadFailed": "MCP servers could not be loaded."
     }
   },
@@ -20,7 +20,7 @@
     "unavailable": "External MCP is temporarily unavailable.",
     "empty": "No external MCP found.",
     "import": {
-      "preview": "Import into BitFun",
+      "preview": "Import into Api4Ward",
       "confirm": "Import {{count}} supported server(s) as disabled native entries?",
       "apply": "Import",
       "cancel": "Cancel",
@@ -184,7 +184,7 @@
   },
   "modal": {
     "remoteAuthTitle": "Remote auth: {{serverName}}",
-    "remoteOAuthHint": "Use OAuth to connect this remote MCP server. BitFun will listen on a local callback URL and reconnect the server after authorization.",
+    "remoteOAuthHint": "Use OAuth to connect this remote MCP server. Api4Ward will listen on a local callback URL and reconnect the server after authorization.",
     "remoteOAuthCurrentStatus": "OAuth state: {{status}}",
     "remoteOAuthRedirectUri": "Callback URL: {{redirectUri}}",
     "remoteOAuthStatus": "OAuth status: {{status}} - {{message}}",

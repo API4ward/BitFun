@@ -90,7 +90,7 @@ pub const GENERATED_SHARED_TERMS: &[GeneratedSharedTermEntry] = &[
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhCN,
         key: "connectionMethods.bitfunServer",
-        value: "BitFun Server",
+        value: "Api4Ward Server",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhCN,
@@ -170,12 +170,12 @@ pub const GENERATED_SHARED_TERMS: &[GeneratedSharedTermEntry] = &[
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhCN,
         key: "product.name",
-        value: "BitFun",
+        value: "Api4Ward",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhCN,
         key: "product.remote",
-        value: "BitFun Remote",
+        value: "Api4Ward Remote",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhCN,
@@ -260,7 +260,7 @@ pub const GENERATED_SHARED_TERMS: &[GeneratedSharedTermEntry] = &[
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhTW,
         key: "connectionMethods.bitfunServer",
-        value: "BitFun Server",
+        value: "Api4Ward Server",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhTW,
@@ -340,12 +340,12 @@ pub const GENERATED_SHARED_TERMS: &[GeneratedSharedTermEntry] = &[
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhTW,
         key: "product.name",
-        value: "BitFun",
+        value: "Api4Ward",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhTW,
         key: "product.remote",
-        value: "BitFun Remote",
+        value: "Api4Ward Remote",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::ZhTW,
@@ -430,7 +430,7 @@ pub const GENERATED_SHARED_TERMS: &[GeneratedSharedTermEntry] = &[
     GeneratedSharedTermEntry {
         locale: LocaleId::EnUS,
         key: "connectionMethods.bitfunServer",
-        value: "BitFun Server",
+        value: "Api4Ward Server",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::EnUS,
@@ -510,12 +510,12 @@ pub const GENERATED_SHARED_TERMS: &[GeneratedSharedTermEntry] = &[
     GeneratedSharedTermEntry {
         locale: LocaleId::EnUS,
         key: "product.name",
-        value: "BitFun",
+        value: "Api4Ward",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::EnUS,
         key: "product.remote",
-        value: "BitFun Remote",
+        value: "Api4Ward Remote",
     },
     GeneratedSharedTermEntry {
         locale: LocaleId::EnUS,

@@ -103,15 +103,18 @@ pub(crate) async fn run_manual(check_only: bool) -> Result<UpdateOutcome> {
     let outcome = result?;
     match outcome {
         UpdateOutcome::Current => {
-            println!("BitFun CLI is up to date ({}).", env!("CARGO_PKG_VERSION"))
+            println!(
+                "Api4Ward CLI is up to date ({}).",
+                env!("CARGO_PKG_VERSION")
+            )
         }
         // `try_source` already printed the available version and its source.
         UpdateOutcome::Available => println!("Run `bitfun update` to install it."),
         UpdateOutcome::Updated => println!(
-            "BitFun CLI was updated successfully. Restart this command to use the new version."
+            "Api4Ward CLI was updated successfully. Restart this command to use the new version."
         ),
         UpdateOutcome::Unsupported => println!(
-            "BitFun CLI self-update supports official Linux x86_64/ARM64 archive installations."
+            "Api4Ward CLI self-update supports official Linux x86_64/ARM64 archive installations."
         ),
     }
     Ok(outcome)
@@ -162,7 +165,7 @@ pub(crate) async fn maybe_run_automatic() {
 
     match spawn_detached_install() {
         Ok(true) => eprintln!(
-            "BitFun CLI {newest} is downloading in the background; it will be used next launch."
+            "Api4Ward CLI {newest} is downloading in the background; it will be used next launch."
         ),
         Ok(false) => tracing::debug!("A CLI update is already in progress; skipping."),
         Err(error) => tracing::debug!("Could not start background CLI update: {error}"),
@@ -230,7 +233,7 @@ fn report_background_failure() {
     if message.is_empty() {
         return;
     }
-    eprintln!("The last background BitFun CLI update failed: {message}");
+    eprintln!("The last background Api4Ward CLI update failed: {message}");
     eprintln!("Run `bitfun update` to retry.");
 }
 
@@ -284,7 +287,7 @@ impl InstallLock {
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
                 if Self::is_held() {
                     return Err(anyhow!(
-                        "another BitFun CLI update is already running ({})",
+                        "another Api4Ward CLI update is already running ({})",
                         path.display()
                     ));
                 }
@@ -340,7 +343,7 @@ async fn update_from_configured_sources(check_only: bool) -> Result<UpdateOutcom
             .collect::<Vec<_>>()
             .join(", ");
         println!(
-            "BitFun CLI {} is available from {} (current {}).",
+            "Api4Ward CLI {} is available from {} (current {}).",
             newest,
             from,
             env!("CARGO_PKG_VERSION")
@@ -419,7 +422,7 @@ async fn update_from_configured_sources(check_only: bool) -> Result<UpdateOutcom
     let mut buffer = staging.resume();
     if !buffer.is_empty() {
         eprintln!(
-            "Resuming a previous BitFun CLI download at {} MB.",
+            "Resuming a previous Api4Ward CLI download at {} MB.",
             buffer.len() / (1024 * 1024)
         );
     }

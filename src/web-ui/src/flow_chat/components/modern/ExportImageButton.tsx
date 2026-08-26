@@ -91,10 +91,10 @@ const ExportContent: React.FC<ExportContentProps> = ({ dialogTurn }) => {
           className={`export-content__logo ${LOGO_PLACEHOLDER_CLASS}`}
           data-bf-component="export-image"
           data-bf-part="logo"
-          aria-label="BitFun"
+          aria-label="Api4Ward"
         />
         <div className="export-content__title-group" data-bf-component="export-image" data-bf-part="title">
-          <div className="export-content__title">BitFun</div>
+          <div className="export-content__title">Api4Ward</div>
           <div className="export-content__subtitle">{i18nService.t('flow-chat:exportImage.subtitle').replace(/ /g, '\u00A0')}</div>
         </div>
         <div className="export-content__timestamp" data-bf-component="export-image" data-bf-part="timestamp">

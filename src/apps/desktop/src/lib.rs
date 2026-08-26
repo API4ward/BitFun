@@ -833,7 +833,7 @@ pub async fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_autostart::Builder::new()
-                .app_name("BitFun")
+                .app_name("Api4Ward")
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())

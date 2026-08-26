@@ -477,7 +477,7 @@ const PairingPage: React.FC<PairingPageProps> = ({ onPaired }) => {
           <ThemeToggleIcon isDark={isDark} />
         </button>
       </div>
-      <img src={logoIcon} alt="BitFun" className="pairing-page__logo" />
+      <img src={logoIcon} alt="Api4Ward" className="pairing-page__logo" />
       <div className="pairing-page__brand">{t('shared.product.remote')}</div>
 
       <div className="pairing-page__spinner-wrap">

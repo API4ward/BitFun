@@ -1,7 +1,7 @@
 {
   "product": {
-    "name": "BitFun",
-    "remote": "BitFun Remote"
+    "name": "Api4Ward",
+    "remote": "Api4Ward Remote"
   },
   "features": {
     "remoteControl": "遠端控制",
@@ -34,7 +34,7 @@
   "connectionMethods": {
     "lan": "區域網路",
     "ngrok": "Ngrok",
-    "bitfunServer": "BitFun Server",
+    "bitfunServer": "Api4Ward Server",
     "customServer": "自訂伺服器",
     "botFeishu": "飛書機器人",
     "botTelegram": "Telegram Bot",

@@ -53,8 +53,8 @@ export type SharedI18nTerms = {
 export const SHARED_TERMS_BY_APP_LANGUAGE = {
   "en-US": {
     "product": {
-      "name": "BitFun",
-      "remote": "BitFun Remote"
+      "name": "Api4Ward",
+      "remote": "Api4Ward Remote"
     },
     "features": {
       "remoteControl": "Remote Control",
@@ -87,7 +87,7 @@ export const SHARED_TERMS_BY_APP_LANGUAGE = {
     "connectionMethods": {
       "lan": "LAN",
       "ngrok": "Ngrok",
-      "bitfunServer": "BitFun Server",
+      "bitfunServer": "Api4Ward Server",
       "customServer": "Custom Server",
       "botFeishu": "Feishu Bot",
       "botTelegram": "Telegram Bot",
@@ -103,8 +103,8 @@ export const SHARED_TERMS_BY_APP_LANGUAGE = {
   },
   "zh-CN": {
     "product": {
-      "name": "BitFun",
-      "remote": "BitFun Remote"
+      "name": "Api4Ward",
+      "remote": "Api4Ward Remote"
     },
     "features": {
       "remoteControl": "远程控制",
@@ -137,7 +137,7 @@ export const SHARED_TERMS_BY_APP_LANGUAGE = {
     "connectionMethods": {
       "lan": "局域网",
       "ngrok": "Ngrok",
-      "bitfunServer": "BitFun Server",
+      "bitfunServer": "Api4Ward Server",
       "customServer": "自定义服务器",
       "botFeishu": "飞书机器人",
       "botTelegram": "Telegram Bot",
@@ -153,8 +153,8 @@ export const SHARED_TERMS_BY_APP_LANGUAGE = {
   },
   "zh-TW": {
     "product": {
-      "name": "BitFun",
-      "remote": "BitFun Remote"
+      "name": "Api4Ward",
+      "remote": "Api4Ward Remote"
     },
     "features": {
       "remoteControl": "遠端控制",
@@ -187,7 +187,7 @@ export const SHARED_TERMS_BY_APP_LANGUAGE = {
     "connectionMethods": {
       "lan": "區域網路",
       "ngrok": "Ngrok",
-      "bitfunServer": "BitFun Server",
+      "bitfunServer": "Api4Ward Server",
       "customServer": "自訂伺服器",
       "botFeishu": "飛書機器人",
       "botTelegram": "Telegram Bot",

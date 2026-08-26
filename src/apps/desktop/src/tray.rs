@@ -212,7 +212,7 @@ pub fn setup_tray(
     let tray = TrayIconBuilder::new()
         .icon(icon)
         .menu(&initial_menu)
-        .tooltip("BitFun")
+        .tooltip("Api4Ward")
         .on_menu_event(|app, event| {
             let id = event.id.as_ref();
             if id == "show_window" {

@@ -6,8 +6,8 @@
     "serverList": {
       "title": "MCP 服務列表",
       "description": "MCP 服務與 JSON 設定",
-      "desktopUnavailable": "請在桌面端管理 BitFun MCP。",
-      "remoteUnavailable": "遠端連線時暫不支援管理 BitFun MCP。",
+      "desktopUnavailable": "請在桌面端管理 Api4Ward MCP。",
+      "remoteUnavailable": "遠端連線時暫不支援管理 Api4Ward MCP。",
       "loadFailed": "無法載入 MCP 服務。"
     }
   },
@@ -20,7 +20,7 @@
     "unavailable": "外部 MCP 暫時無法使用。",
     "empty": "未發現外部 MCP。",
     "import": {
-      "preview": "匯入到 BitFun",
+      "preview": "匯入到 Api4Ward",
       "confirm": "將 {{count}} 個受支援的伺服器作為停用的原生設定匯入？",
       "apply": "匯入",
       "cancel": "取消",
@@ -184,7 +184,7 @@
   },
   "modal": {
     "remoteAuthTitle": "遠程認證：{{serverName}}",
-    "remoteOAuthHint": "使用 OAuth 連接這個遠程 MCP 伺服器。BitFun 會監聽一個本地回調地址，並在授權完成後重新連接該伺服器。",
+    "remoteOAuthHint": "使用 OAuth 連接這個遠程 MCP 伺服器。Api4Ward 會監聽一個本地回調地址，並在授權完成後重新連接該伺服器。",
     "remoteOAuthCurrentStatus": "OAuth 狀態：{{status}}",
     "remoteOAuthRedirectUri": "回調地址：{{redirectUri}}",
     "remoteOAuthStatus": "OAuth 詳情：{{status}} - {{message}}",

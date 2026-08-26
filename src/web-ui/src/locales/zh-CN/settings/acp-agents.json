@@ -51,7 +51,7 @@
     "permissionDenied": "权限不足",
     "partialDetail": "CLI 已就绪，但 ACP 适配器还未配置。",
     "cliMissingDetail": "未检测到对应命令，请确认已安装并加入 PATH。",
-    "selfManagedCliMissingDetail": "{{name}} 需要在 BitFun 外单独安装。请安装 {{command}} CLI 并确认它已加入 PATH，然后刷新检测。",
+    "selfManagedCliMissingDetail": "{{name}} 需要在 Api4Ward 外单独安装。请安装 {{command}} CLI 并确认它已加入 PATH，然后刷新检测。",
     "acpMissingDetail": "ACP 适配器暂不可用。",
     "pathInvalidDetail": "命令路径无法解析，请确认路径有效。",
     "versionMismatchDetail": "检测到的版本与当前运行环境不匹配。",

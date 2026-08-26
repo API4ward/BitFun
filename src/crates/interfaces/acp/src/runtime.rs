@@ -226,7 +226,7 @@ impl AcpRuntime for BitfunAcpRuntime {
                     ),
             )
             .agent_info(
-                Implementation::new("bitfun-acp", env!("CARGO_PKG_VERSION")).title("BitFun"),
+                Implementation::new("bitfun-acp", env!("CARGO_PKG_VERSION")).title("Api4Ward"),
             ))
     }
 

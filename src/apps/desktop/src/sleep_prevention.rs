@@ -117,8 +117,8 @@ fn set_inhibitor_enabled(
         if inhibitor.is_none() {
             let guard = keepawake::Builder::default()
                 .idle(true)
-                .reason("Prevent sleep is enabled in BitFun")
-                .app_name("BitFun")
+                .reason("Prevent sleep is enabled in Api4Ward")
+                .app_name("Api4Ward")
                 .app_reverse_domain("com.bitfun.desktop")
                 .create()
                 .map_err(|error| {

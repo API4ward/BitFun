@@ -4,7 +4,7 @@
   "loading": "Loading review settings...",
   "desktopOnly": {
     "title": "Desktop only",
-    "description": "Review capacity settings are available in the BitFun desktop app. Review is not available on this surface."
+    "description": "Review capacity settings are available in the Api4Ward desktop app. Review is not available on this surface."
   },
   "error": {
     "title": "Review settings unavailable",

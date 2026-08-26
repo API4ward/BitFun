@@ -4,7 +4,7 @@
   "loading": "正在加载审核设置...",
   "desktopOnly": {
     "title": "仅桌面端可用",
-    "description": "Review 容量设置仅在 BitFun 桌面应用中可用；当前界面不支持启动 Review。"
+    "description": "Review 容量设置仅在 Api4Ward 桌面应用中可用；当前界面不支持启动 Review。"
   },
   "error": {
     "title": "审核设置暂不可用",

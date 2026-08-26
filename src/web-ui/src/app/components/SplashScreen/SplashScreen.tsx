@@ -57,7 +57,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
         <div className="splash-screen__logo-wrap" data-bf-component="splash-screen" data-bf-part="logo">
           <img
             src="/Logo-ICON-128.png"
-            alt="BitFun"
+            alt="Api4Ward"
             className="splash-screen__logo"
             draggable={false}
             decoding="async"

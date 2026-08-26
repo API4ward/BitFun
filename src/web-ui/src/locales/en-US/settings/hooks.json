@@ -18,10 +18,10 @@
   },
   "locations": {
     "title": "Where hooks are declared",
-    "description": "Hooks live in hooks.json files, not in this settings document. Both layers are additive, with user hooks running first. Changes are picked up without restarting BitFun.",
+    "description": "Hooks live in hooks.json files, not in this settings document. Both layers are additive, with user hooks running first. Changes are picked up without restarting Api4Ward.",
     "userFile": {
       "label": "User hook file",
-      "description": "config/hooks.json in your BitFun user config directory (~/.config/bitfun on Linux, ~/Library/Application Support/bitfun on macOS, %APPDATA%\\bitfun on Windows)."
+      "description": "config/hooks.json in your Api4Ward user config directory (~/.config/bitfun on Linux, ~/Library/Application Support/bitfun on macOS, %APPDATA%\\bitfun on Windows)."
     },
     "projectFile": {
       "label": "Project hook file",
@@ -30,7 +30,7 @@
   },
   "imports": {
     "title": "Imported hooks",
-    "description": "Review compatible Claude Code and Codex command hooks once, then manage BitFun's local snapshot here.",
+    "description": "Review compatible Claude Code and Codex command hooks once, then manage Api4Ward's local snapshot here.",
     "masterDisabled": "Imported hooks are preserved, but the master switch prevents them from running.",
     "refresh": "Refresh",
     "remoteUnsupported": "Imported hooks are unavailable for remote workspaces.",
@@ -72,10 +72,10 @@
     "storeInvalid": "Imported hook state needs repair",
     "reset": "Reset managed state",
     "removeTitle": "Remove imported hooks?",
-    "removeSourceUntouched": "Only BitFun's managed copy is removed. The Claude Code or Codex source is not changed.",
+    "removeSourceUntouched": "Only Api4Ward's managed copy is removed. The Claude Code or Codex source is not changed.",
     "removeConfirm": "Remove managed copy",
     "resetTitle": "Reset invalid imported hook state?",
-    "resetWarning": "This removes the invalid BitFun-managed index for this scope. Source application files are not changed.",
+    "resetWarning": "This removes the invalid Api4Ward-managed index for this scope. Source application files are not changed.",
     "resetConfirm": "Reset managed state"
   },
   "compatibility": {

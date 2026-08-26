@@ -41,7 +41,7 @@ export function LanguageSelect({ onSelect }: LanguageSelectProps) {
           textAlign: 'center', maxWidth: 280, padding: '0 24px',
           animation: 'heroContentFadeIn 0.8s ease-out 0.3s both',
         }}>
-          <img src={logoUrl} alt="BitFun" style={{
+          <img src={logoUrl} alt="Api4Ward" style={{
             display: 'block', margin: '0 auto 16px',
             width: 56, height: 56, borderRadius: 14,
             filter: 'drop-shadow(0 0 40px color-mix(in srgb, var(--color-accent-500) 8%, transparent))',
@@ -51,7 +51,7 @@ export function LanguageSelect({ onSelect }: LanguageSelectProps) {
             color: 'var(--color-text-primary)', letterSpacing: '-0.03em',
             lineHeight: 0.95, margin: '0 0 16px 0',
             textShadow: '0 0 60px color-mix(in srgb, var(--color-accent-500) 15%, transparent)',
-          }}>BitFun</h1>
+          }}>Api4Ward</h1>
         </div>
 
         <div style={{

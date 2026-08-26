@@ -181,7 +181,7 @@
     }
   },
   "messages": {
-    "unsupported": "Voice input is available in the BitFun desktop app.",
+    "unsupported": "Voice input is available in the Api4Ward desktop app.",
     "loadFailed": "Failed to load voice input settings",
     "saveSuccess": "Voice input settings saved",
     "saveFailed": "Failed to save voice input settings",

@@ -246,12 +246,12 @@ mod windows {
         log::error!("Automatic WebView2 recovery budget exhausted; requesting user action");
         app.dialog()
             .message(
-                "BitFun's display stopped responding and automatic recovery was paused to avoid a restart loop. Restart BitFun now?",
+                "Api4Ward's display stopped responding and automatic recovery was paused to avoid a restart loop. Restart Api4Ward now?",
             )
-            .title("BitFun display recovery")
+            .title("Api4Ward display recovery")
             .kind(MessageDialogKind::Error)
             .buttons(MessageDialogButtons::OkCancelCustom(
-                "Restart BitFun".to_string(),
+                "Restart Api4Ward".to_string(),
                 "Exit".to_string(),
             ))
             .show_with_result(move |result| match result {

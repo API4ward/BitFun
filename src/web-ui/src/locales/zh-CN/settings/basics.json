@@ -66,7 +66,7 @@
       "customPxPlaceholder": "14",
       "customPxOutOfRange": "请输入 12–20 之间的整数",
       "resetButton": "恢复默认",
-      "previewText": "BitFun 是一个由 AI 驱动的编程环境。The quick brown fox jumps over the lazy dog.",
+      "previewText": "Api4Ward 是一个由 AI 驱动的编程环境。The quick brown fox jumps over the lazy dog.",
       "flowChatLabel": "对话区域",
       "flowChatHint": "关闭时对话区域比界面大 1 px，并随界面档位变化。开启后在下方从列表中选择 12–20 px。",
       "flowChatCustomToggle": "自定义对话字号",
@@ -90,10 +90,10 @@
   "launchAtLogin": {
     "sections": {
       "title": "登录时启动",
-      "hint": "登录本用户后是否自动运行 BitFun"
+      "hint": "登录本用户后是否自动运行 Api4Ward"
     },
     "toggleLabel": "开机自动启动",
-    "toggleDescription": "登录系统后自动启动 BitFun；具体表现因操作系统而异。",
+    "toggleDescription": "登录系统后自动启动 Api4Ward；具体表现因操作系统而异。",
     "messages": {
       "loading": "加载中…",
       "loadFailed": "无法读取开机启动设置",
@@ -103,10 +103,10 @@
   "preventSleep": {
     "sections": {
       "title": "电源",
-      "hint": "BitFun 运行时的电脑睡眠行为"
+      "hint": "Api4Ward 运行时的电脑睡眠行为"
     },
     "toggleLabel": "阻止电脑睡眠",
-    "toggleDescription": "只要 BitFun 正在运行，就保持电脑唤醒，无论是否有任务在执行。显示器仍可关闭；主动睡眠或合上笔记本电脑由系统策略决定。",
+    "toggleDescription": "只要 Api4Ward 正在运行，就保持电脑唤醒，无论是否有任务在执行。显示器仍可关闭；主动睡眠或合上笔记本电脑由系统策略决定。",
     "messages": {
       "loading": "加载中…",
       "loadFailed": "无法读取阻止睡眠设置",
@@ -126,14 +126,14 @@
     },
     "sensitiveDiagnostics": {
       "label": "包含敏感调试信息",
-      "description": "开启后，本地日志可能包含用户 Prompt、模型请求和响应 payload、工具参数、文件路径以及 Webview 事件 payload，用于问题排查。BitFun 不会自动上传这些日志文件。"
+      "description": "开启后，本地日志可能包含用户 Prompt、模型请求和响应 payload、工具参数、文件路径以及 Webview 事件 payload，用于问题排查。Api4Ward 不会自动上传这些日志文件。"
     },
     "path": {
       "description": "本次启动写入日志文件所在的目录。"
     },
     "diagnostics": {
       "label": "诊断包",
-      "description": "将最近的本地日志、崩溃报告与运行时元数据导出为 zip 文件。BitFun 不会自动上传。"
+      "description": "将最近的本地日志、崩溃报告与运行时元数据导出为 zip 文件。Api4Ward 不会自动上传。"
     },
     "previousCrash": {
       "title": "上次会话异常结束",
@@ -145,11 +145,11 @@
     },
     "startupRecovery": {
       "title": "上次会话异常结束",
-      "message": "BitFun 发现上次会话留下了崩溃报告。如需反馈问题，可以导出诊断包。"
+      "message": "Api4Ward 发现上次会话留下了崩溃报告。如需反馈问题，可以导出诊断包。"
     },
     "configRecovery": {
       "title": "配置已恢复",
-      "message": "BitFun 已修复或隔离 {{count}} 个配置问题，应用得以继续启动。请检查模型设置后再继续使用。"
+      "message": "Api4Ward 已修复或隔离 {{count}} 个配置问题，应用得以继续启动。请检查模型设置后再继续使用。"
     },
     "levels": {
       "trace": "Trace",
@@ -231,7 +231,8 @@
       "saved": "窗口行为设置已保存"
     }
   },
-  "notifications": {    "title": "通知",
+  "notifications": {
+    "title": "通知",
     "hint": "Toast 弹窗通知偏好设置",
     "dialogCompletion": {
       "label": "任务完成通知",
@@ -248,6 +249,31 @@
     "messages": {
       "saveSuccess": "通知设置已保存",
       "saveFailed": "保存通知设置失败"
+    }
+  },
+  "defaultDomain": {
+    "sections": {
+      "title": "默认域名",
+      "hint": "未指定自建服务器时，远程连接和官方中继登录使用的主机名"
+    },
+    "label": "默认域名",
+    "description": "填写主机名或 host:port。留空则使用内置默认值。不要包含 https:// 或路径。",
+    "placeholder": "remote.openbitfun.com",
+    "builtinHint": "内置默认值：{{domain}}",
+    "errors": {
+      "spaces": "域名不能包含空格。",
+      "scheme": "请填写主机名，不要包含 https://。",
+      "path": "域名不能包含路径。",
+      "shape": "只接受 host 或 host:port。",
+      "host": "请输入有效的主机名或 IP 地址。",
+      "port": "端口必须是 1 到 65535 之间的数字。"
+    },
+    "messages": {
+      "loading": "加载中...",
+      "loadFailed": "读取默认域名设置失败",
+      "saveFailed": "保存默认域名设置失败",
+      "saved": "默认域名已保存",
+      "invalid": "默认域名无效"
     }
   }
 }

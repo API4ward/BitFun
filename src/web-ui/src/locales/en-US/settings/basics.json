@@ -66,7 +66,7 @@
       "customPxPlaceholder": "14",
       "customPxOutOfRange": "Please enter an integer between 12 and 20",
       "resetButton": "Reset to Default",
-      "previewText": "BitFun is an AI-driven programming environment. The quick brown fox jumps over the lazy dog.",
+      "previewText": "Api4Ward is an AI-driven programming environment. The quick brown fox jumps over the lazy dog.",
       "flowChatLabel": "Chat area",
       "flowChatHint": "When off, chat uses UI +1 px and tracks UI presets. When on, pick a size (12–20 px) from the list below.",
       "flowChatCustomToggle": "Custom chat font size",
@@ -79,7 +79,7 @@
       "hint": "Check for new versions after startup"
     },
     "toggleLabel": "Automatic update check",
-    "toggleDescription": "When enabled, BitFun may prompt you shortly after launch if a newer version is available. Manual check from About is always available.",
+    "toggleDescription": "When enabled, Api4Ward may prompt you shortly after launch if a newer version is available. Manual check from About is always available.",
     "messages": {
       "loading": "Loading...",
       "loadFailed": "Failed to read update settings",
@@ -90,10 +90,10 @@
   "launchAtLogin": {
     "sections": {
       "title": "Login",
-      "hint": "Start BitFun when you sign in to this account"
+      "hint": "Start Api4Ward when you sign in to this account"
     },
     "toggleLabel": "Launch at login",
-    "toggleDescription": "Automatically start BitFun after you log in. Exact behavior depends on your operating system.",
+    "toggleDescription": "Automatically start Api4Ward after you log in. Exact behavior depends on your operating system.",
     "messages": {
       "loading": "Loading...",
       "loadFailed": "Failed to read launch-at-login setting",
@@ -103,10 +103,10 @@
   "preventSleep": {
     "sections": {
       "title": "Power",
-      "hint": "Computer sleep behavior while BitFun is running"
+      "hint": "Computer sleep behavior while Api4Ward is running"
     },
     "toggleLabel": "Prevent sleep",
-    "toggleDescription": "Keep the computer awake whenever BitFun is running, whether or not a task is active. The display may still turn off, and explicit sleep or closing a laptop lid follows system policy.",
+    "toggleDescription": "Keep the computer awake whenever Api4Ward is running, whether or not a task is active. The display may still turn off, and explicit sleep or closing a laptop lid follows system policy.",
     "messages": {
       "loading": "Loading…",
       "loadFailed": "Failed to read the prevent-sleep setting",
@@ -126,14 +126,14 @@
     },
     "sensitiveDiagnostics": {
       "label": "Include sensitive diagnostic data",
-      "description": "When enabled, local logs may include prompts, model request and response payloads, tool arguments, file paths, and webview event payloads for troubleshooting. BitFun does not upload these log files automatically."
+      "description": "When enabled, local logs may include prompts, model request and response payloads, tool arguments, file paths, and webview event payloads for troubleshooting. Api4Ward does not upload these log files automatically."
     },
     "path": {
       "description": "Directory where log files for this run are written."
     },
     "diagnostics": {
       "label": "Diagnostics Bundle",
-      "description": "Export recent local logs, crash reports, and runtime metadata as a zip file. BitFun does not upload it automatically."
+      "description": "Export recent local logs, crash reports, and runtime metadata as a zip file. Api4Ward does not upload it automatically."
     },
     "previousCrash": {
       "title": "Previous session ended unexpectedly",
@@ -145,11 +145,11 @@
     },
     "startupRecovery": {
       "title": "Previous session ended unexpectedly",
-      "message": "BitFun found a crash report from the previous session. You can export diagnostics if you want to report the issue."
+      "message": "Api4Ward found a crash report from the previous session. You can export diagnostics if you want to report the issue."
     },
     "configRecovery": {
       "title": "Configuration recovered",
-      "message": "BitFun repaired or isolated {{count}} configuration issue(s) so the app could start. Review your model settings before continuing."
+      "message": "Api4Ward repaired or isolated {{count}} configuration issue(s) so the app could start. Review your model settings before continuing."
     },
     "levels": {
       "trace": "Trace",
@@ -249,6 +249,31 @@
     "messages": {
       "saveSuccess": "Notification settings saved",
       "saveFailed": "Failed to save notification settings"
+    }
+  },
+  "defaultDomain": {
+    "sections": {
+      "title": "Default domain",
+      "hint": "Hostname used for Remote Connect and official relay login when a custom server is not set"
+    },
+    "label": "Default domain",
+    "description": "Enter a hostname or host:port. Leave empty to use the built-in default. Do not include https:// or a path.",
+    "placeholder": "remote.openbitfun.com",
+    "builtinHint": "Built-in default: {{domain}}",
+    "errors": {
+      "spaces": "Domain must not contain spaces.",
+      "scheme": "Enter a hostname, not a URL. Do not include https://.",
+      "path": "Domain must not include a path.",
+      "shape": "Enter host or host:port only.",
+      "host": "Enter a valid hostname or IP address.",
+      "port": "Port must be a number from 1 to 65535."
+    },
+    "messages": {
+      "loading": "Loading...",
+      "loadFailed": "Failed to read the default domain setting",
+      "saveFailed": "Failed to save the default domain setting",
+      "saved": "Default domain saved",
+      "invalid": "Default domain is invalid"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "personalizationPage": {
     "title": "个性化",
-    "subtitle": "个性化配置你的 BitFun"
+    "subtitle": "个性化配置你的 Api4Ward"
   },
   "permissionsPage": {
     "title": "权限管理",
@@ -10,7 +10,7 @@
   "features": {
     "agentCompanion": {
       "title": "Agent 伙伴",
-      "subtitle": "控制 BitFun 伙伴的显示方式。",
+      "subtitle": "控制 Api4Ward 伙伴的显示方式。",
       "enable": "显示 Agent 伙伴",
       "displayModeLabel": "显示位置",
       "displayModeDescription": "选择伙伴显示在输入框内，还是作为软件外的悬浮桌面宠物。",
@@ -47,7 +47,7 @@
   },
   "permissionPolicy": {
     "sectionTitle": "工具权限",
-    "sectionDescription": "设置 BitFun 何时需要你确认工具操作。",
+    "sectionDescription": "设置 Api4Ward 何时需要你确认工具操作。",
     "mode": "默认权限模式",
     "ask": "需要确认",
     "askDescription": "修改文件、执行命令或访问外部服务时先确认。",
@@ -78,7 +78,11 @@
     "removeGlobalRule": "删除规则",
     "discardGlobalRules": "放弃更改",
     "saveGlobalRules": "保存规则",
-    "globalRulesEffects": { "allow": "允许", "ask": "询问", "deny": "拒绝" },
+    "globalRulesEffects": {
+      "allow": "允许",
+      "ask": "询问",
+      "deny": "拒绝"
+    },
     "modeDescription": "作为新会话的默认设置，可在输入框中临时切换。"
   },
   "projectPermissions": {
@@ -115,7 +119,11 @@
     "rulesSaveFailed": "保存静态项目规则失败",
     "rulesConflict": "规则文件已在外部变更，请重新打开项目权限后再保存。",
     "cancel": "取消",
-    "effects": { "allow": "允许", "ask": "询问", "deny": "拒绝" }
+    "effects": {
+      "allow": "允许",
+      "ask": "询问",
+      "deny": "拒绝"
+    }
   },
   "deferredToolLoading": {
     "sectionTitle": "按需加载工具",
@@ -124,18 +132,18 @@
   },
   "computerUse": {
     "sectionTitle": "桌面控制",
-    "sectionDescription": "允许 BitFun 查看屏幕并操作鼠标和键盘。",
+    "sectionDescription": "允许 Api4Ward 查看屏幕并操作鼠标和键盘。",
     "enable": "允许桌面控制",
-    "enableDesc": "关闭后，BitFun 将不再操作桌面应用。浏览器控制可单独设置。",
+    "enableDesc": "关闭后，Api4Ward 将不再操作桌面应用。浏览器控制可单独设置。",
     "accessibility": "辅助功能",
-    "accessibilityDesc": "允许 BitFun 识别并操作其他应用中的界面。",
+    "accessibilityDesc": "允许 Api4Ward 识别并操作其他应用中的界面。",
     "screenCapture": "屏幕录制",
-    "screenCaptureDesc": "允许 BitFun 查看屏幕内容。",
+    "screenCaptureDesc": "允许 Api4Ward 查看屏幕内容。",
     "granted": "已授权",
     "notGranted": "未授权",
     "openSettings": "系统设置",
     "refreshStatus": "刷新状态",
-    "desktopOnly": "桌面控制仅在 BitFun 桌面应用中可用。",
+    "desktopOnly": "桌面控制仅在 Api4Ward 桌面应用中可用。",
     "platformNote": "说明",
     "platformNotes": {
       "macos": "当前构建仍需在系统设置中授予辅助功能权限。",
@@ -146,8 +154,8 @@
   },
   "browserControl": {
     "sectionTitle": "浏览器控制",
-    "sectionDescription": "选择 BitFun 使用的浏览器和连接方式。",
-    "desktopOnly": "浏览器控制仅在 BitFun 桌面应用中可用。",
+    "sectionDescription": "选择 Api4Ward 使用的浏览器和连接方式。",
+    "desktopOnly": "浏览器控制仅在 Api4Ward 桌面应用中可用。",
     "preferredBrowser": "浏览器",
     "preferredBrowserDesc": "默认使用系统浏览器。",
     "notInstalled": "未安装",
@@ -160,11 +168,11 @@
     "defaultCdp": "使用现有浏览器",
     "defaultCdpDesc": "使用已打开的 Chrome 或 Edge，并保留标签页和登录状态。连接时仍需在浏览器中确认。",
     "autoConnectOnStartup": "启动时自动连接",
-    "autoConnectOnStartupDesc": "BitFun 启动后自动连接已打开的浏览器。浏览器重启后可能需要重新确认。",
+    "autoConnectOnStartupDesc": "Api4Ward 启动后自动连接已打开的浏览器。浏览器重启后可能需要重新确认。",
     "defaultCdpEnabled": "已启用",
     "defaultCdpDisabled": "未启用",
     "enableDefaultCdp": "启用并连接",
-    "defaultCdpEnablePrompt": "已打开 {{browser}} 的 Remote debugging 设置页（该页面仅有英文）。请勾选 “Allow remote debugging for this browser instance”；BitFun 检测到后会自动继续连接，再请在浏览器中选择“允许”。",
+    "defaultCdpEnablePrompt": "已打开 {{browser}} 的 Remote debugging 设置页（该页面仅有英文）。请勾选 “Allow remote debugging for this browser instance”；Api4Ward 检测到后会自动继续连接，再请在浏览器中选择“允许”。",
     "defaultCdpConnectPrompt": "正在连接你当前的 {{browser}}；请在浏览器弹窗中选择“允许”。",
     "connectSuccess": "已连接 {{browser}}",
     "connectFailed": "连接浏览器失败",
@@ -175,7 +183,7 @@
     "restartFailed": "无法重新启动并连接 {{browser}}",
     "restartModal": {
       "title": "重新启动浏览器",
-      "description": "BitFun 需要重新启动当前的 {{browser}} 才能连接。",
+      "description": "Api4Ward 需要重新启动当前的 {{browser}} 才能连接。",
       "warning": "此操作会关闭当前浏览器窗口。",
       "cancel": "取消",
       "confirm": "重新启动并连接",
