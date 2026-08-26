@@ -1,0 +1,114 @@
+{
+  "id": "builtin-netbreaker",
+  "name": "NetBreaker",
+  "description": "Local v2ray kernel runner: start and stop a SOCKS inbound, show the listen port, ping connectivity, and keep the last 10 log lines.",
+  "icon": "Globe",
+  "category": "developer",
+  "tags": [
+    "built-in",
+    "network",
+    "proxy",
+    "v2ray"
+  ],
+  "version": 1,
+  "created_at": 0,
+  "updated_at": 0,
+  "view_mode": "front",
+  "permissions": {
+    "fs": {
+      "read": [
+        "{appdata}"
+      ],
+      "write": [
+        "{appdata}"
+      ]
+    },
+    "shell": {
+      "allow": [
+        "v2ray",
+        "v2ray.exe"
+      ]
+    },
+    "net": {
+      "allow": [
+        "api.github.com",
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com"
+      ]
+    },
+    "node": {
+      "enabled": true,
+      "max_memory_mb": 256,
+      "timeout_ms": 120000
+    }
+  },
+  "lifecycle": {
+    "install": "hooks/install.js",
+    "uninstall": "hooks/uninstall.js",
+    "start": "hooks/start.js",
+    "stop": "hooks/stop.js"
+  },
+  "scripts": [
+    {
+      "name": "start",
+      "path": "scripts/start.js",
+      "description": "Start the local v2ray kernel listener"
+    },
+    {
+      "name": "stop",
+      "path": "scripts/stop.js",
+      "description": "Stop the local v2ray kernel process"
+    },
+    {
+      "name": "ping",
+      "path": "scripts/ping.js",
+      "description": "Probe the local inbound and a public TCP endpoint"
+    },
+    {
+      "name": "ensure-kernel",
+      "path": "scripts/ensure-kernel.js",
+      "description": "Locate or download a user-local v2ray kernel into scripts/"
+    },
+    {
+      "name": "v2ray",
+      "path": "scripts/v2ray.js",
+      "description": "Locate the bundled kernel, or pass through arguments to it"
+    }
+  ],
+  "ai_context": null,
+  "i18n": {
+    "locales": {
+      "zh-CN": {
+        "name": "NetBreaker",
+        "description": "本地 v2ray 内核运行器：启动/停止 SOCKS 入站、显示监听端口、连通性探测，并保留最近 10 条日志。",
+        "tags": [
+          "内置",
+          "网络",
+          "代理",
+          "v2ray"
+        ]
+      },
+      "en-US": {
+        "name": "NetBreaker",
+        "description": "Local v2ray kernel runner: start and stop a SOCKS inbound, show the listen port, ping connectivity, and keep the last 10 log lines.",
+        "tags": [
+          "built-in",
+          "network",
+          "proxy",
+          "v2ray"
+        ]
+      },
+      "zh-TW": {
+        "name": "NetBreaker",
+        "description": "本機 v2ray 核心執行器：啟動/停止 SOCKS 入站、顯示監聽埠、連通性探測，並保留最近 10 條日誌。",
+        "tags": [
+          "內建",
+          "網路",
+          "代理",
+          "v2ray"
+        ]
+      }
+    }
+  }
+}

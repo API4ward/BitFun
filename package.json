@@ -29,6 +29,7 @@
     "i18n:contract:test": "node --test scripts/i18n-contract.test.mjs",
     "i18n:contract:test:ci": "cross-env BITFUN_I18N_CONTRACT_TEST_PROFILE=ci node --test scripts/i18n-contract.test.mjs",
     "test:ppt-live": "node --test src/crates/contracts/product-domains/src/miniapp/builtin/assets/ppt-live/test/*.test.mjs",
+    "test:netbreaker": "node --test src/crates/contracts/product-domains/src/miniapp/builtin/assets/netbreaker/test/*.test.cjs",
     "test:netbreaker2": "node --test src/crates/contracts/product-domains/src/miniapp/builtin/assets/netbreaker2/test/*.test.cjs",
     "i18n:audit": "node scripts/i18n-audit.mjs",
     "theme:color-audit": "node scripts/audit-theme-colors.mjs",

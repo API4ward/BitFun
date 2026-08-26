@@ -169,6 +169,17 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         extra_files: &[],
     },
     BuiltinMiniAppBundle {
+        id: "builtin-netbreaker",
+        version: 1,
+        meta_json: include_str!("builtin/assets/netbreaker/meta.json"),
+        html: include_str!("builtin/assets/netbreaker/index.html"),
+        css: include_str!("builtin/assets/netbreaker/style.css"),
+        ui_js: include_str!("builtin/assets/netbreaker/ui.js"),
+        worker_js: include_str!("builtin/assets/netbreaker/worker.js"),
+        esm_dependencies_json: "[]",
+        extra_files: NETBREAKER_EXTRA_FILES,
+    },
+    BuiltinMiniAppBundle {
         id: "builtin-netbreaker2",
         version: 1,
         meta_json: include_str!("builtin/assets/netbreaker2/meta.json"),
@@ -179,6 +190,53 @@ pub const BUILTIN_APPS: &[BuiltinMiniAppBundle] = &[
         esm_dependencies_json: "[]",
         extra_files: NETBREAKER2_EXTRA_FILES,
     },
+];
+
+const NETBREAKER_EXTRA_FILES: &[(&str, &str)] = &[
+    (
+        "hooks/install.js",
+        include_str!("builtin/assets/netbreaker/hooks/install.js"),
+    ),
+    (
+        "hooks/uninstall.js",
+        include_str!("builtin/assets/netbreaker/hooks/uninstall.js"),
+    ),
+    (
+        "hooks/start.js",
+        include_str!("builtin/assets/netbreaker/hooks/start.js"),
+    ),
+    (
+        "hooks/stop.js",
+        include_str!("builtin/assets/netbreaker/hooks/stop.js"),
+    ),
+    (
+        "scripts/kernel-runner.js",
+        include_str!("builtin/assets/netbreaker/scripts/kernel-runner.js"),
+    ),
+    (
+        "scripts/start.js",
+        include_str!("builtin/assets/netbreaker/scripts/start.js"),
+    ),
+    (
+        "scripts/stop.js",
+        include_str!("builtin/assets/netbreaker/scripts/stop.js"),
+    ),
+    (
+        "scripts/ping.js",
+        include_str!("builtin/assets/netbreaker/scripts/ping.js"),
+    ),
+    (
+        "scripts/ensure-kernel.js",
+        include_str!("builtin/assets/netbreaker/scripts/ensure-kernel.js"),
+    ),
+    (
+        "scripts/v2ray.js",
+        include_str!("builtin/assets/netbreaker/scripts/v2ray.js"),
+    ),
+    (
+        "scripts/README.md",
+        include_str!("builtin/assets/netbreaker/scripts/README.md"),
+    ),
 ];
 
 const NETBREAKER2_EXTRA_FILES: &[(&str, &str)] = &[
@@ -460,6 +518,7 @@ mod tests {
                 "builtin-regex-playground",
                 "builtin-coding-selfie",
                 "builtin-ppt-live",
+                "builtin-netbreaker",
                 "builtin-netbreaker2",
             ]
         );
@@ -756,6 +815,57 @@ mod tests {
             super::builtin_content_hash(&base),
             super::builtin_content_hash(&with_script)
         );
+    }
+
+    #[test]
+    fn netbreaker_bundle_ships_named_scripts_and_kernel_runner() {
+        let app = BUILTIN_APPS
+            .iter()
+            .find(|app| app.id == "builtin-netbreaker")
+            .expect("NetBreaker should be registered");
+        let meta: serde_json::Value =
+            serde_json::from_str(app.meta_json).expect("NetBreaker metadata should be valid");
+
+        assert_eq!(meta["id"], "builtin-netbreaker");
+        assert_eq!(meta["name"], "NetBreaker");
+        assert_eq!(meta["version"].as_u64(), Some(u64::from(app.version)));
+        assert_eq!(meta["permissions"]["fs"]["read"][0], "{appdata}");
+        assert_eq!(meta["permissions"]["fs"]["write"][0], "{appdata}");
+        assert_eq!(meta["permissions"]["node"]["enabled"], true);
+        assert!(meta["permissions"]["shell"]["allow"]
+            .as_array()
+            .is_some_and(|allow| allow.iter().any(|item| item == "v2ray")));
+        assert!(meta["lifecycle"]["install"]
+            .as_str()
+            .is_some_and(|path| path == "hooks/install.js"));
+        assert!(meta["lifecycle"]["uninstall"]
+            .as_str()
+            .is_some_and(|path| path == "hooks/uninstall.js"));
+
+        let scripts = meta["scripts"]
+            .as_array()
+            .expect("NetBreaker should declare named scripts");
+        let names: Vec<&str> = scripts
+            .iter()
+            .filter_map(|script| script["name"].as_str())
+            .collect();
+        assert_eq!(names, ["start", "stop", "ping", "ensure-kernel", "v2ray"]);
+        assert!(scripts.iter().all(|script| script["path"]
+            .as_str()
+            .is_some_and(|path| path.starts_with("scripts/"))));
+
+        let extra_paths: Vec<&str> = app.extra_files.iter().map(|(path, _)| *path).collect();
+        assert!(extra_paths.contains(&"scripts/kernel-runner.js"));
+        assert!(extra_paths.contains(&"scripts/start.js"));
+        assert!(extra_paths.contains(&"scripts/stop.js"));
+        assert!(extra_paths.contains(&"scripts/v2ray.js"));
+        assert!(extra_paths.contains(&"hooks/install.js"));
+        assert!(app.worker_js.contains("kernel-runner"));
+        assert!(app.ui_js.contains("btn-start"));
+        assert!(app.html.contains("id=\"listen-port\""));
+        assert!(app.html.contains("id=\"logs\""));
+        assert!(!app.meta_json.contains("exploit"));
+        assert!(!app.worker_js.contains("C2"));
     }
 
     #[test]
