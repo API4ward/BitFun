@@ -14,6 +14,8 @@ const {
   looksLikeKernelBinary,
   pickReleaseAsset,
   planElevationLaunch,
+  looksLikeGzip,
+  extractArchive,
 } = require('../scripts/kernel-runner');
 
 function scratch() {
@@ -93,6 +95,18 @@ test('pickReleaseAsset prefers official mihomo OS/arch archives', () => {
   if (process.platform === 'linux' && process.arch === 'x64') {
     assert.equal(asset.browser_download_url, 'https://example.invalid/ok');
   }
+});
+
+test('extractArchive gunzips official mihomo even when saved without .gz', () => {
+  const { gzipSync } = require('node:zlib');
+  const dir = scratch();
+  const archivePath = join(dir, 'mihomo-kernel.bin');
+  writeFileSync(archivePath, gzipSync(Buffer.from('fake-mihomo-bytes')));
+  assert.equal(looksLikeGzip(archivePath), true);
+  const extractDir = join(dir, 'out');
+  assert.equal(extractArchive(archivePath, extractDir), true);
+  const dest = join(extractDir, process.platform === 'win32' ? 'mihomo.exe' : 'mihomo');
+  assert.equal(readFileSync(dest, 'utf8'), 'fake-mihomo-bytes');
 });
 
 test('locateKernel reports missing kernel honestly', () => {

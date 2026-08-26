@@ -469,9 +469,23 @@ function pickReleaseAsset(assets) {
   return list[0] || null;
 }
 
+function looksLikeGzip(filePath) {
+  if (String(filePath).endsWith('.tar.gz')) return false;
+  if (String(filePath).endsWith('.gz')) return true;
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(2);
+    const n = fs.readSync(fd, buf, 0, 2, 0);
+    fs.closeSync(fd);
+    return n === 2 && buf[0] === 0x1f && buf[1] === 0x8b;
+  } catch {
+    return false;
+  }
+}
+
 function extractArchive(archivePath, destDir) {
   fs.mkdirSync(destDir, { recursive: true });
-  if (archivePath.endsWith('.gz') && !archivePath.endsWith('.tar.gz')) {
+  if (looksLikeGzip(archivePath)) {
     const dest = path.join(destDir, process.platform === 'win32' ? 'mihomo.exe' : 'mihomo');
     fs.writeFileSync(dest, zlib.gunzipSync(fs.readFileSync(archivePath)));
     return true;
@@ -986,7 +1000,8 @@ function createRunner(appDir, options) {
       const release = await httpsJson(MIHOMO_LATEST);
       const asset = pickReleaseAsset(release.assets);
       if (!asset) throw new Error(`Release does not include a mihomo ${mapped.os}-${mapped.arch} binary`);
-      const archivePath = path.join(root, ARCHIVE_REL);
+      const archiveName = path.basename(asset.name || path.basename(ARCHIVE_REL));
+      const archivePath = path.join(root, 'runtime', archiveName);
       await downloadFile(asset.browser_download_url, archivePath);
       const extractDir = path.join(root, 'runtime', 'kernel-extract');
       fs.rmSync(extractDir, { recursive: true, force: true });
@@ -1049,5 +1064,7 @@ module.exports = {
   planElevationLaunch,
   pickReleaseAsset,
   looksLikeKernelBinary,
+  looksLikeGzip,
+  extractArchive,
   defaultTunDevice,
 };
