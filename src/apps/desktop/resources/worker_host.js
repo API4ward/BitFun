@@ -7,6 +7,12 @@
  *
  * Usage: node worker_host.js '<policy_json>'
  * Cwd: MiniApp app directory (contains source/worker.js, package.json, storage.json)
+ *
+ * This file must stay CommonJS. The sibling package.json pins "type": "commonjs"
+ * so `tauri dev` / `cargo run` still work when an ancestor package.json (the
+ * BitFun repo root) sets "type": "module". Without that pin, Node treats this
+ * file as ESM, `require` throws, the worker exits, and host RPCs hit the
+ * node.timeout_ms timeout.
  */
 
 const fs = require('fs');
