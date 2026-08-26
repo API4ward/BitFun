@@ -74,6 +74,8 @@ export interface AppConfig {
   ai_experience: AIExperienceConfig;
   user_tool_groups?: UserToolGroupsConfig;
   user_skill_groups?: UserSkillGroupsConfig;
+  /** Remote Connect / relay hostname (`host[:port]`). Empty uses the built-in default. */
+  default_domain?: string;
 }
 
 export interface UserToolGroupsConfig {

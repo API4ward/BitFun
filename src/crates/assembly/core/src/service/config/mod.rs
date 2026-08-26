@@ -5,6 +5,7 @@
 #[cfg(feature = "agent-runtime")]
 pub mod agent_profile_project_store;
 pub mod app_language;
+pub mod default_domain;
 pub mod factory;
 pub mod global;
 pub mod manager;
@@ -19,6 +20,10 @@ pub mod types;
 
 pub use app_language::{
     get_app_language, get_app_language_code, short_model_user_language_instruction,
+};
+pub use default_domain::{
+    relay_base_url_from_domain, resolve_default_domain, validate_default_domain,
+    BUILTIN_DEFAULT_DOMAIN,
 };
 pub use factory::ConfigFactory;
 pub use global::{

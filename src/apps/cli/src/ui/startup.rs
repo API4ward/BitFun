@@ -1390,9 +1390,9 @@ impl StartupPage {
         });
         match logged_in {
             Ok(snapshot) if snapshot.logged_in => self.open_account_panel(snapshot),
-            Ok(_) => self.login_form.show(),
+            Ok(_) => self.login_form.show_for_login(),
             Err(error) => {
-                self.login_form.show();
+                self.login_form.show_for_login();
                 self.login_form
                     .set_error(format!("Failed to load account: {error}"));
             }
@@ -1404,7 +1404,7 @@ impl StartupPage {
         snapshot: bitfun_product_domains::account::AccountSnapshotProjection,
     ) {
         let Some(info) = snapshot.info else {
-            self.login_form.show();
+            self.login_form.show_for_login();
             return;
         };
         self.login_form
@@ -1580,7 +1580,7 @@ impl StartupPage {
                                 Ok::<(), anyhow::Error>(())
                             })
                         });
-                        self.login_form.show();
+                        self.login_form.show_for_login();
                     }
                 }
             }
@@ -1632,7 +1632,7 @@ impl StartupPage {
                                 Ok::<(), anyhow::Error>(())
                             })
                         });
-                        self.login_form.show();
+                        self.login_form.show_for_login();
                     }
                 }
             }
@@ -1649,7 +1649,7 @@ impl StartupPage {
                         ))
                     })
                 });
-                self.login_form.show();
+                self.login_form.show_for_login();
                 self.status = Some("Sync cancelled; logged out.".to_string());
             }
             LoginFormAction::Logout => {
@@ -1668,7 +1668,7 @@ impl StartupPage {
                     })
                 }) {
                     Ok(_) => {
-                        self.login_form.show();
+                        self.login_form.show_for_login();
                         self.status = Some("Logged out.".to_string());
                     }
                     Err(e) => {
@@ -2530,7 +2530,7 @@ impl StartupPage {
                 PopupType::ThemeSelector => self.theme_selector.reshow(),
                 PopupType::ProviderSelector => self.provider_selector.reshow(),
                 PopupType::ModelConfigForm => self.model_config_form.reshow(),
-                PopupType::LoginForm => self.login_form.show(),
+                PopupType::LoginForm => self.login_form.show_for_login(),
             }
         }
     }

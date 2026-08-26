@@ -4,6 +4,7 @@ import { Archive, FolderOpen } from 'lucide-react';
 import {
   Alert,
   Button,
+  Input,
   Select,
   Switch,
   Tooltip,
@@ -35,6 +36,10 @@ import type {
   TerminalConfig as TerminalSettings,
   TerminalPanelPosition,
 } from '../types';
+import {
+  BUILTIN_DEFAULT_DOMAIN,
+  validateDefaultDomain,
+} from '../utils/defaultDomain';
 import './BasicsConfig.scss';
 
 const log = createLogger('BasicsConfig');
@@ -984,6 +989,101 @@ function BasicsNotificationsSection() {
   );
 }
 
+function BasicsDefaultDomainSection() {
+  const { t } = useTranslation('settings/basics');
+  const [value, setValue] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const validation = validateDefaultDomain(value);
+
+  const showMessage = useCallback((type: 'success' | 'error' | 'info', text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 3000);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        setLoading(true);
+        const stored = await configManager.getConfig<string>('app.default_domain');
+        if (!cancelled) {
+          setValue(typeof stored === 'string' ? stored : '');
+        }
+      } catch (error) {
+        log.info('app.default_domain is unset; using the built-in default', error);
+        if (!cancelled) {
+          setValue('');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showMessage, t]);
+
+  const handleSave = useCallback(async () => {
+    const next = validateDefaultDomain(value);
+    if (!next.ok) {
+      showMessage('error', t('defaultDomain.messages.invalid'));
+      return;
+    }
+    setSaving(true);
+    try {
+      await configManager.setConfig('app.default_domain', next.value);
+      setValue(next.value);
+      showMessage('success', t('defaultDomain.messages.saved'));
+    } catch (error) {
+      log.error('Failed to save app.default_domain', { value, error });
+      showMessage('error', t('defaultDomain.messages.saveFailed'));
+    } finally {
+      setSaving(false);
+    }
+  }, [showMessage, t, value]);
+
+  if (loading) {
+    return <ConfigPageLoading text={t('defaultDomain.messages.loading')} />;
+  }
+
+  return (
+    <div className="bitfun-default-domain-config" data-bf-component="basics-config" data-bf-part="defaultDomain">
+      <ConfigPageMessage message={message} />
+      <ConfigPageSection
+        title={t('defaultDomain.sections.title')}
+        description={t('defaultDomain.sections.hint')}
+      >
+        <ConfigPageRow
+          label={t('defaultDomain.label')}
+          description={`${t('defaultDomain.description')} ${t('defaultDomain.builtinHint', { domain: BUILTIN_DEFAULT_DOMAIN })}`}
+        >
+          <Input
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder={t('defaultDomain.placeholder')}
+            disabled={saving}
+            error={!validation.ok}
+            errorMessage={validation.ok ? undefined : t(`defaultDomain.errors.${validation.error}`)}
+            onBlur={() => {
+              void handleSave();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                void handleSave();
+              }
+            }}
+          />
+        </ConfigPageRow>
+      </ConfigPageSection>
+    </div>
+  );
+}
+
 const BasicsConfig: React.FC = () => {
   const { t } = useTranslation('settings/basics');
 
@@ -995,6 +1095,7 @@ const BasicsConfig: React.FC = () => {
         <BasicsPreventSleepSection />
         <BasicsAutoUpdateSection />
         <BasicsWindowBehaviorSection />
+        <BasicsDefaultDomainSection />
         <BasicsLoggingSection />
         <BasicsTerminalSection />
         <BasicsNotificationsSection />

@@ -1283,11 +1283,10 @@ async fn register_delegated_identity_providers() {
                     let account_lease = lock_account_sync(generation)
                         .await
                         .map_err(|_| "Desktop account changed; try again".to_string())?;
-                    let context = account_context
-                        .read()
-                        .await
-                        .clone()
-                        .ok_or_else(|| "Desktop is not logged into a BitFun account".to_string())?;
+                    let context =
+                        account_context.read().await.clone().ok_or_else(|| {
+                            "Desktop is not logged into a BitFun account".to_string()
+                        })?;
                     if !account_context_matches(generation, &context.session.token).await {
                         return Err("Desktop account changed; try again".to_string());
                     }
@@ -1547,10 +1546,25 @@ async fn ensure_service() -> Result<(), String> {
     }
     drop(guard);
 
-    let config = RemoteConnectConfig {
+    let mut config = RemoteConnectConfig {
         mobile_web_dir: detect_mobile_web_dir(),
         ..RemoteConnectConfig::default()
     };
+    if let Ok(service) = bitfun_core::service::config::get_global_config_service().await {
+        let stored = service
+            .get_config::<String>(Some("app.default_domain"))
+            .await
+            .unwrap_or_default();
+        match bitfun_core::service::config::relay_base_url_from_domain(&stored) {
+            Ok(url) => {
+                config.bitfun_server_url = url.clone();
+                config.web_app_url = url;
+            }
+            Err(error) => {
+                log::error!("Invalid app.default_domain; refusing official relay default: {error}");
+            }
+        }
+    }
     let service =
         new_remote_connect_service(config).map_err(|e| format!("init remote connect: {e}"))?;
     *holder.write().await = Some(service);

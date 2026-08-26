@@ -97,10 +97,12 @@ pub struct RemoteConnectConfig {
 
 impl Default for RemoteConnectConfig {
     fn default() -> Self {
+        let builtin = crate::service::config::relay_base_url_from_domain("")
+            .unwrap_or_else(|_| "https://remote.openbitfun.com/relay".to_string());
         Self {
             lan_port: 9700,
-            bitfun_server_url: "https://remote.openbitfun.com/relay".to_string(),
-            web_app_url: "https://remote.openbitfun.com/relay".to_string(),
+            bitfun_server_url: builtin.clone(),
+            web_app_url: builtin,
             custom_server_url: None,
             bot_feishu: None,
             bot_telegram: None,
@@ -453,6 +455,25 @@ type AccountPairingVerifierFn = Arc<
         + Sync,
 >;
 
+async fn official_relay_base_url(fallback: &str) -> Result<String> {
+    let stored = match crate::service::config::get_global_config_service().await {
+        Ok(service) => service
+            .get_config::<String>(Some("app.default_domain"))
+            .await
+            .unwrap_or_default(),
+        Err(_) => String::new(),
+    };
+    crate::service::config::relay_base_url_from_domain(&stored)
+        .or_else(|error| {
+            if stored.trim().is_empty() && !fallback.trim().is_empty() {
+                Ok(fallback.trim_end_matches('/').to_string())
+            } else {
+                Err(error)
+            }
+        })
+        .map_err(|error| anyhow::anyhow!("{error}"))
+}
+
 impl RemoteConnectService {
     pub fn new(
         config: RemoteConnectConfig,
@@ -651,7 +672,7 @@ impl RemoteConnectService {
                 .is_some_and(|value| !value.is_empty())
             {
                 return Err(
-                    "Desktop signed out of the BitFun account; sign in again and refresh the QR code"
+                    "Desktop signed out of the Api4Ward account; sign in again and refresh the QR code"
                         .to_string(),
                 );
             }
@@ -702,12 +723,12 @@ impl RemoteConnectService {
         let provider = delegated_identity_fn.read().await.clone();
         let Some(get_identity) = provider else {
             return AuthorizedCredentialResolution::error(
-                "Desktop is not logged into a BitFun account",
+                "Desktop is not logged into an Api4Ward account",
             );
         };
         let Some(authorization) = get_identity().await else {
             return AuthorizedCredentialResolution::error(
-                "Desktop is not logged into a BitFun account",
+                "Desktop is not logged into an Api4Ward account",
             );
         };
         if authorization.user_id != trusted_identity.user_id {
@@ -759,7 +780,7 @@ impl RemoteConnectService {
         let provider = peer_device_provision_fn.read().await.clone();
         let Some(provision) = provider else {
             return AuthorizedCredentialResolution::error(
-                "Desktop is not logged into a BitFun account",
+                "Desktop is not logged into an Api4Ward account",
             );
         };
         let authorization = match provision(
@@ -900,10 +921,13 @@ impl RemoteConnectService {
                 *self.ngrok_tunnel.write().await = Some(tunnel);
                 url
             }
-            ConnectionMethod::BitfunServer => validate_relay_base_url(&self.config.bitfun_server_url)?
-                .as_str()
-                .trim_end_matches('/')
-                .to_string(),
+            ConnectionMethod::BitfunServer => {
+                let url = official_relay_base_url(&self.config.bitfun_server_url).await?;
+                validate_relay_base_url(&url)?
+                    .as_str()
+                    .trim_end_matches('/')
+                    .to_string()
+            }
             ConnectionMethod::CustomServer { url } => validate_relay_base_url(url)?
                 .as_str()
                 .trim_end_matches('/')
@@ -983,12 +1007,12 @@ impl RemoteConnectService {
                         }
                         Err(e) => {
                             error!("Failed to upload mobile-web to relay: {e}; falling back to server-hosted version");
-                            self.config.web_app_url.clone()
+                            relay_url.clone()
                         }
                     }
                 } else {
                     info!("No mobile_web_dir configured; using server-hosted mobile web");
-                    self.config.web_app_url.clone()
+                    relay_url.clone()
                 }
             }
             ConnectionMethod::CustomServer { .. } => {

@@ -188,6 +188,10 @@ pub struct AppConfig {
     /// Defaults for opt-in managed Git worktrees.
     #[serde(default)]
     pub worktrees: WorktreeSettings,
+    /// User-configured default hostname for Remote Connect / relay (`host[:port]`).
+    /// Empty or unset uses the built-in default (`remote.openbitfun.com`).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub default_domain: String,
 }
 
 /// Enablement gates for native agent hooks.
@@ -1841,6 +1845,7 @@ impl Default for AppConfig {
             close_button_behavior: default_close_button_behavior(),
             hooks: AgentHooksConfig::default(),
             worktrees: WorktreeSettings::default(),
+            default_domain: String::new(),
         }
     }
 }
@@ -2371,6 +2376,41 @@ mod tests {
             .expect("legacy config should deserialize with permission defaults");
 
         assert_eq!(config.tool_permissions, ToolPermissionConfig::default());
+    }
+
+    #[test]
+    fn legacy_app_config_defaults_empty_default_domain() {
+        let config: GlobalConfig = serde_json::from_value(serde_json::json!({
+            "app": {
+                "language": "en-US"
+            }
+        }))
+        .expect("legacy config without default_domain should deserialize");
+
+        assert_eq!(config.app.default_domain, "");
+        assert_eq!(
+            crate::service::config::resolve_default_domain(&config.app.default_domain).unwrap(),
+            crate::service::config::BUILTIN_DEFAULT_DOMAIN
+        );
+
+        let serialized = serde_json::to_value(&config).expect("config should serialize");
+        assert!(serialized["app"].get("default_domain").is_none());
+    }
+
+    #[test]
+    fn app_default_domain_round_trips_when_set() {
+        let config: GlobalConfig = serde_json::from_value(serde_json::json!({
+            "app": {
+                "default_domain": "relay.example.com:8443"
+            }
+        }))
+        .expect("configured default_domain should deserialize");
+
+        assert_eq!(config.app.default_domain, "relay.example.com:8443");
+        assert_eq!(
+            crate::service::config::relay_base_url_from_domain(&config.app.default_domain).unwrap(),
+            "https://relay.example.com:8443/relay"
+        );
     }
 
     #[test]

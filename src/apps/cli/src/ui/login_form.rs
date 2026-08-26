@@ -150,6 +150,38 @@ impl LoginFormState {
         self.account_focus = AccountFocus::Close;
     }
 
+    pub(crate) fn show_for_login(&mut self) {
+        self.show();
+        self.apply_settings_default_auth_server();
+    }
+
+    pub(crate) fn apply_settings_default_auth_server(&mut self) {
+        if !self.auth_server.trim().is_empty() {
+            return;
+        }
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        let url = tokio::task::block_in_place(|| {
+            handle.block_on(async {
+                let stored = match bitfun_core::service::config::get_global_config_service().await {
+                    Ok(service) => service
+                        .get_config::<String>(Some("app.default_domain"))
+                        .await
+                        .unwrap_or_default(),
+                    Err(_) => String::new(),
+                };
+                bitfun_core::service::config::relay_base_url_from_domain(&stored)
+                    .unwrap_or_default()
+            })
+        });
+        if url.is_empty() {
+            return;
+        }
+        self.auth_server = url;
+        self.cursor = self.auth_server.chars().count();
+    }
+
     pub(crate) fn hide(&mut self) {
         self.visible = false;
         self.error = None;
@@ -456,7 +488,7 @@ impl LoginFormState {
         let outer = Block::default()
             .borders(Borders::ALL)
             .border_style(theme.style(StyleKind::Primary))
-            .title(" BitFun Account Login ")
+            .title(" Api4Ward Account Login ")
             .title_alignment(Alignment::Center);
         let inner = outer.inner(area);
         frame.render_widget(outer, area);
@@ -605,7 +637,7 @@ impl LoginFormState {
         let outer = Block::default()
             .borders(Borders::ALL)
             .border_style(theme.style(StyleKind::Primary))
-            .title(" BitFun Account ")
+            .title(" Api4Ward Account ")
             .title_alignment(Alignment::Center);
         let inner = outer.inner(area);
         frame.render_widget(outer, area);

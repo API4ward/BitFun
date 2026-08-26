@@ -39,6 +39,7 @@ import { RelayDeployWizard } from '@/features/relay-deploy';
 import type { RelayDeployResult } from '@/features/relay-deploy';
 import { configAPI } from '@/infrastructure/api/service-api/ConfigAPI';
 import { configManager } from '@/infrastructure/config/services/ConfigManager';
+import { relayBaseUrlFromDomain } from '@/infrastructure/config/utils/defaultDomain';
 import { api } from '@/infrastructure/api/service-api/ApiClient';
 import { usePeerDeviceMode } from '@/infrastructure/peer-device/peerDeviceContextState';
 import { useAccountSyncStore, ensureAccountSyncProgressListener } from '@/infrastructure/account/accountSyncStore';
@@ -576,11 +577,22 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({
     remoteConnectAPI.getDeviceInfo().then((info) => {
       if (isAccountEpochCurrent(epoch)) setLocalDeviceId(info.device_id);
     }).catch((e) => { log.warn('getDeviceInfo failed', e); });
-    remoteConnectAPI.accountGetCredentialHint().then((hint: AccountHint | null) => {
-      if (hint && isAccountEpochCurrent(epoch)) {
+    remoteConnectAPI.accountGetCredentialHint().then(async (hint: AccountHint | null) => {
+      if (!isAccountEpochCurrent(epoch)) return;
+      if (hint) {
         setUsername(hint.username);
         setAuthServer(hint.relay_url);
         setAccountRelayUrl(hint.relay_url);
+        return;
+      }
+      try {
+        const stored = await configManager.getConfig<string>('app.default_domain');
+        const relayUrl = relayBaseUrlFromDomain(typeof stored === 'string' ? stored : '');
+        if (isAccountEpochCurrent(epoch)) {
+          setAuthServer(relayUrl);
+        }
+      } catch (error) {
+        log.warn('Failed to resolve default relay domain', error);
       }
     });
     remoteConnectAPI.accountStatus().then(async (status) => {

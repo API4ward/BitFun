@@ -34,6 +34,8 @@ export const SETTINGS_TAB_SEARCH_CONTENT: Record<ConfigTab, readonly SettingsTab
     { ns: 'settings/basics', key: 'terminal.sections.terminalHint' },
     { ns: 'settings/basics', key: 'notifications.title' },
     { ns: 'settings/basics', key: 'notifications.hint' },
+    { ns: 'settings/basics', key: 'defaultDomain.sections.title' },
+    { ns: 'settings/basics', key: 'defaultDomain.sections.hint' },
   ],
 
   appearance: [

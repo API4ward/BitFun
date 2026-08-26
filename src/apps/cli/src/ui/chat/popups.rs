@@ -733,7 +733,7 @@ impl ChatView {
     // ============ Account login form ============
 
     pub(crate) fn show_login_form(&mut self) {
-        self.login_form.show();
+        self.login_form.show_for_login();
         self.popup_stack.push(PopupType::LoginForm);
     }
 
@@ -746,7 +746,7 @@ impl ChatView {
     }
 
     pub(crate) fn reshow_login_form(&mut self) {
-        self.login_form.show();
+        self.login_form.show_for_login();
     }
 
     pub(crate) fn login_form_handle_key(

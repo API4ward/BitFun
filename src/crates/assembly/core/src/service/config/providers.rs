@@ -637,6 +637,14 @@ impl ConfigProvider for AppConfigProvider {
                     app_config.logging.level
                 )));
             }
+
+            if let Err(error) =
+                super::default_domain::validate_default_domain(&app_config.default_domain)
+            {
+                return Err(BitFunError::validation(format!(
+                    "Invalid app.default_domain: {error}"
+                )));
+            }
         } else {
             return Err(BitFunError::validation(
                 "Invalid app config format".to_string(),

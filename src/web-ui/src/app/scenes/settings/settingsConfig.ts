@@ -67,6 +67,11 @@ export const SETTINGS_CATEGORIES: ConfigCategoryDef[] = [
           'notification',
           'notifications',
           'startup tips',
+          'domain',
+          'default domain',
+          'relay',
+          'hostname',
+          'remote.openbitfun.com',
         ],
       },
       {
