@@ -343,4 +343,9 @@ Bringing scripts to market apps is a future item that requires an explicit
 review/consent model (and matching client + server validator changes), not a
 simple whitelist widening.
 
+An optional standalone Market Server (email accounts, 投肯, private tokens) is
+a **separate git repository**, not part of this workspace. Clone it beside the
+tree as `market/` (gitignored here) and follow that repo's README. Production
+`https://market.openbitfun.com/miniapp/` remains `miniapp-market-service`.
+
 Each subsequent change keeps this table current.

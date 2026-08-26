@@ -96,3 +96,6 @@ external/
 
 .design/
 .pnpm-store/
+
+# Independent Mini App Market Server (separate git repo; not vendored here)
+/market/
